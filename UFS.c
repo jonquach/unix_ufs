@@ -310,7 +310,7 @@ char *getMostLeftPathPart(char *path)
 }
 
 //au debut ROOT_INODE
-void lol(ino inode, char *pathToFind)
+ino lol(ino inode, char *pathToFind)
 {
   iNodeEntry pIE;
   char fileDataBlock[BLOCK_SIZE];
@@ -333,14 +333,15 @@ void lol(ino inode, char *pathToFind)
 	  printf("current name = %s\n", pDirEntry[i].Filename);
 	  if (strcmp(pDirEntry[i].Filename, leftPathPart) == 0)//si le nom de dossier est le meme que le nom de path suivant alors on peut choper son inode et recommencer
 	    {
-	      printf("match");
-     	      lol(pDirEntry[i].iNode, pathToFind); //dans la structure y a l'inode a coté du filename
+	      printf("match\n");
+     	      return lol(pDirEntry[i].iNode, pathToFind); //dans la structure y a l'inode a coté du filename
 	    }
 	  i++;
 	}
     }
   else
     {
+      return pIE.iNodeStat.st_ino;
       printf("file = %s\n", pathToFind);
     }
   
@@ -360,11 +361,15 @@ int bd_create(const char *pFilename) {
 	return -1;
 }
 
-int
+int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
 
-bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
+  ino inodeNum = lol(ROOT_INODE, pFilename);
+  iNodeEntry pIE;
 
-  lol(ROOT_INODE, pFilename);
+  getINodeEntry(inodeNum, &pIE);
+  char fileData[BLOCK_SIZE];
+  ReadBlock(pIE.Block[0], fileData);
+  printf("file stuff shit = %s\n", fileData);
   // lolilol();
   return;
   ino iNodeNum = getFileINodeNumFromPath(pFilename);
