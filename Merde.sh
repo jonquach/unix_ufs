@@ -21,8 +21,8 @@ echo "--------------------------------------------------------------------"
 echo "                          tests de lecture"
 echo "--------------------------------------------------------------------"
 
-./ufs read /b.txt 0 30
-./ufs read /b.txt 0 20
-./ufs read /b.txt 0 10
+./ufs read /b.txt 0 28
+./ufs read /b.txt 0 5
+./ufs read /b.txt 5 10
 ./ufs read /b.txt 10 30
 ./ufs read /b.txt 10 5

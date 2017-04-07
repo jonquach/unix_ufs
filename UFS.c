@@ -370,9 +370,22 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   char fileData[BLOCK_SIZE];
   ReadBlock(pIE.Block[0], fileData);
   printf("file stuff shit = %s\n", fileData);
-  // lolilol();
-  return;
-  ino iNodeNum = getFileINodeNumFromPath(pFilename);
+
+  int ctRead = 0;
+  int i = offset;
+  //while (ctRead < numbytes && i < pIE.iNodeStat.st_size)
+  while (i < (offset + numbytes) && i < pIE.iNodeStat.st_size)
+    {
+      buffer[ctRead] = fileData[i];
+      ctRead++;
+      i++;
+    }
+  printf("i = %d\n", i);
+  buffer[ctRead] = '\0';
+  printf("while or not while that is the question = %s (taille = [%d])\n", buffer, strlen(buffer));
+
+  return ctRead;
+  /*  ino iNodeNum = getFileINodeNumFromPath(pFilename);
   iNodeEntry iNode;
 
   if (iNodeNum == -1) return -1;							// Le fichier pFilename est inexistant
@@ -388,7 +401,7 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
     octets++;
   }
   return octets; // retourne le nombre d'octets lus
-  return -1;
+  return -1;*/
 }
 
 int bd_mkdir(const char *pDirName) {
