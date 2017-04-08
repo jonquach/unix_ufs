@@ -304,16 +304,17 @@ int bd_create(const char *pFilename) {
 
 int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   ino inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
-  iNodeEntry pIE;
-
-  getINodeEntry(inodeNum, &pIE);
+  iNodeEntry iNodeEntry;
   char fileData[BLOCK_SIZE];
-  ReadBlock(pIE.Block[0], fileData);
-
   int ctRead = 0;
   int i = offset;
 
-  while (i < (offset + numbytes) && i < pIE.iNodeStat.st_size)
+  getINodeEntry(inodeNum, &iNodeEntry);
+  
+  ReadBlock(iNodeEntry.Block[0], fileData);
+
+
+  while (i < (offset + numbytes) && i < iNodeEntry.iNodeStat.st_size)
     {
       buffer[ctRead] = fileData[i];
       ctRead++;
