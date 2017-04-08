@@ -94,87 +94,19 @@ void printiNode(iNodeEntry iNode) {
 /* ----------------------------------------------------------------------------------------
 					            à vous de jouer, maintenant!
    ---------------------------------------------------------------------------------------- */
+int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry);
+int isFolder(iNodeEntry iNodeStuff);
+int getLeftPart(char *path, char **leftPart);
+ino getInodeNumberFromPath(ino inode, char *pathToFind);
+int findFirstFreeInode(char freeInodes[BLOCK_SIZE]);
+int getFreeInode();
 
-int getFileINodeNumFromParent(const char *pFileName, int parentINodeNum);
-int getInode(const char *pPath, const char *pFilename, int parentINodeNum);
-int getFileINodeNumFromPath(const char *pPath);
-int getINodeEntry(ino iNodeNum, iNodeEntry *pIE);
-
-/* Retourne le numero d'inode du fichier pFileName dans le répertoire associé au numero d'inode parentINodeNum */
-/*int getFileINodeNumFromParent(const char *pFileName, int parentINodeNum) {
-	if (strcmp(pFileName, "") == 0)
-	  return parentINodeNum;
-	char blockData[BLOCK_SIZE];
-	// On trouve le numero du block d'i-nodes qui contient le numero d'i-node parent
-	printf("parentInodeNum = %d\n", parentINodeNum);
-	int iNodesBlockNum = BASE_BLOCK_INODE + (parentINodeNum / NUM_INODE_PER_BLOCK);
-	printf("iNodessBlockNum = %d\n", iNodesBlockNum);
-	// Lecture du block d'i-nodes
-	ReadBlock(iNodesBlockNum, blockData);
-	iNodeEntry *pINodes = (iNodeEntry *) blockData;
-	// On trouve la position de l'i-node parent dans le block d'i-nodes
-	UINT16 iNodePosition = parentINodeNum % NUM_INODE_PER_BLOCK;
-	// On trouve le nombre d'entrées dans le block de l'i-node parent
-	UINT16 entryNum = NumberofDirEntry(pINodes[iNodePosition].iNodeStat.st_size);
-	// Lecture du block de données associé à l'i-node parent
-	ReadBlock(pINodes[iNodePosition].Block[0], blockData);
-	DirEntry *pDE = (DirEntry *) blockData;
-	// Pour chaque entrée du block (sauf . et ..) on vérifie le nom de fichier
-	size_t n;
-	for (n = 0; n < entryNum; n++) {
-		if (strcmp(pFileName, pDE[n].Filename) == 0) {
-			return pDE[n].iNode;	// On a trouvé le numéro d'i-node correspondant au nom de fichier/repertoire
-		}
-	}
-	return -1;	// Le nom de fichier/répertoire n'existe pas
-}
-*/
-
-
-/* Fait une récursion sur le path pPath et retourne le numéro d'inode du fichier pFilename */
-/*int getInode(const char *pPath, const char *pFilename, int parentINodeNum) {
-	if (parentINodeNum == -1) return -1;
-
-	char pName[FILENAME_SIZE];
-	int iCar, iSlash = 0;
-	for (iCar = 0; iCar < FILENAME_SIZE; iCar++) {
-	  //printf("char = %c\n", pPath[iCar]);
-	  if (pPath[iCar] == 0)
-	    break;//arrivé au bout
-	  else if (pPath[iCar] == '/' && iCar != 0)//on break si on tombe sur un / mais pas le premier (celui de root)
-	    break;
-	  else if (pPath[iCar] == '/')
-	    iSlash++;
-	  else {
-	    pName[(iCar-iSlash)] = pPath[iCar];
-	    //printf("a chaque tours = %s\n", pName);
-	  }
-	}
-	pName[iCar - iSlash] = 0;//pour mettre un /0 je supose
-	//printf("pName de linfinie = %s\n", pName);
-	if (strcmp(pFilename, pName) == 0) {//si mon nouveau pName c'est le meme que le fileName alors c bon. Sinon on recommence en passant au / d'après
-		return getFileINodeNumFromParent(pName, parentINodeNum);
-	} else {
-		getInode(pPath + strlen(pName) + 1, pFilename, getFileINodeNumFromParent(pName, parentINodeNum));
-	}
-}*/
-
-/* Retourne le numero d'inode correspondant au fichier spécifié par le path */
-/*int getFileINodeNumFromPath(const char *pPath) {
-  printf("path = %s\n", pPath);
-  if (strcmp(pPath, "/") == 0)
-    return ROOT_INODE;
-  char pName[FILENAME_SIZE];
-  if (GetFilenameFromPath(pPath, pName) == 0)
-    pName[0] = 0;
-  printf("pname chelou = %s\n", pName);
-  return getInode(pPath, pName, ROOT_INODE);
-}*/
 
 /*Recupere le inodeEntry en utilisant un numéro d'inode*/
-int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry) {
-  UINT16 iNodeBlockNum = -1;
-  UINT16 iNodePosition = -1;
+int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry)
+{
+  int iNodeBlockNum = -1;
+  int iNodePosition = -1;
   iNodeEntry *inodesBlock = NULL;
   char blockData[BLOCK_SIZE];
   
@@ -291,6 +223,37 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
     }
 }
 
+int findFirstFreeInode(char freeInodes[BLOCK_SIZE])
+{
+  int curInode = ROOT_INODE;
+  
+  while (curInode < N_INODE_ON_DISK && freeInodes[curInode] == 0) {
+    curInode++;
+  }
+  
+  if (curInode >= N_INODE_ON_DISK) {
+    return -1;
+  }
+  return curInode;
+}
+
+int getFreeInode()
+{
+  char freeInodesBlock[BLOCK_SIZE];
+  int freeInode = -1;
+  
+  ReadBlock(FREE_INODE_BITMAP, freeInodesBlock);
+  freeInode = findFirstFreeInode(freeInodesBlock);
+  
+  if (freeInode != -1) {
+    freeInodesBlock[freeInode] = 0;
+    printf("GLOFS: Saisie i-node %d\n", freeInode); //check si c le bon message
+    WriteBlock(FREE_INODE_BITMAP, freeInodesBlock);
+    return freeInode;
+  }
+  return -1;
+}
+
 int bd_countfreeblocks(void) {
 	return 0;
 }
@@ -328,7 +291,44 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
 }
 
 int bd_mkdir(const char *pDirName) {
-	return -1;
+  printf("mais nike ta mere\n");
+  char pathRight[FILENAME_SIZE];
+  char pathLeft[FILENAME_SIZE];
+  ino inodeNumLeft;
+  iNodeEntry inodeEntryLeft;
+  ino inodeNumRight;
+  iNodeEntry inodeEntryRight;
+
+int freeInode = getFreeInode();
+ freeInode = getFreeInode();
+  printf("lolilol = %d\n", freeInode);
+  
+  
+  if (GetDirFromPath(pDirName, pathRight) == 0)
+    return (-1);
+  
+  if (GetFilenameFromPath(pDirName, pathLeft) == 0)
+    return (-1);
+
+  if ((inodeNumLeft = getInodeNumberFromPath(ROOT_INODE, pathLeft)) == -1)
+    return (-1);//pas sur que ca soit -1
+  getInodeEntry(inodeNumLeft, &inodeEntryLeft);
+
+  if (isFolder(inodeEntryLeft) != 1)//LNK aussi ?
+    return -1;
+
+  
+  
+  ino newInodeNumRight;
+  iNodeEntry newInodeEntryRight;
+  /*
+  inodeEntryLeft.iNodeStat.st_nlink++;
+  WriteBlock(FREE_INODE_BLOCK, inodeEntryLeft);
+  
+  
+  
+  */
+
 }
 
 int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes) { 
@@ -361,7 +361,7 @@ int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
   char dataBlock[BLOCK_SIZE];
   
   getInodeEntry(iNodeNum, &iNodeEntry);
-  
+
   //if (iNodeNum == -1) return -1;// Le fichier pDirLocation est inexistant
   //if (getINodeEntry(iNodeNum, &iNode) != 0)  return -1; // Le fichier pDirLocation est inexistant
   //if (!(iNode.iNodeStat.st_mode & G_IFDIR)) return -1; // Le fichier pDirLocation n'est pas un répertoire
@@ -369,7 +369,6 @@ int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
   ReadBlock(iNodeEntry.Block[0], dataBlock);
 
   *ppListeFichiers = (DirEntry*) malloc(iNodeEntry.iNodeStat.st_size);
-  //printf("foldername = %s\n", *ppListeFichiers[0][0].Filename);
   memcpy(*ppListeFichiers, dataBlock, iNodeEntry.iNodeStat.st_size);
 
   return NumberofDirEntry(iNodeEntry.iNodeStat.st_size);
