@@ -258,7 +258,7 @@ int plop(char *path, char *leftPart)
       ct++;
       i++;
     }
-  newString = malloc(ct * sizeof(char));
+  newString = malloc((ct + 1) * sizeof(char));
   i = 0;
   while (path[0] != '\0' && path[0] != '/')
     {
