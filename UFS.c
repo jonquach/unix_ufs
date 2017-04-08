@@ -244,14 +244,14 @@ int getLeftPart(char *path, char **leftPart)
 //au debut ROOT_INODE
 ino getInodeNumberFromPath(ino inode, char *pathToFind)
 {
-  iNodeEntry pIE;
+  iNodeEntry iNodeEntry;
   char fileDataBlock[BLOCK_SIZE];
   
-  getINodeEntry(inode, &pIE);
-  ReadBlock(pIE.Block[0], fileDataBlock);
+  getINodeEntry(inode, &iNodeEntry);
+  ReadBlock(iNodeEntry.Block[0], fileDataBlock);
   //printf("remaining path = %s\n", pathToFind);
     
-  if (isFolder(pIE) == 1)
+  if (isFolder(iNodeEntry) == 1)
     {
       //printf("folder\n");
 
@@ -269,7 +269,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
       
       //printf("newString = %s\n", leftPathPart);
       DirEntry *pDirEntry = (DirEntry *)fileDataBlock;
-      int nbFile = pIE.iNodeStat.st_size / sizeof(DirEntry);
+      int nbFile = iNodeEntry.iNodeStat.st_size / sizeof(DirEntry);
       //printf("nbFIle = %d\n", nbFile);
       int i = 0;
       while(i < nbFile)
@@ -286,7 +286,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
   else
     {
       //printf("file = %s\n", pathToFind);
-      return pIE.iNodeStat.st_ino;
+      return iNodeEntry.iNodeStat.st_ino;
     }
 }
 
