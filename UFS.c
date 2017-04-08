@@ -239,7 +239,7 @@ int isFolder(iNodeEntry iNodeStuff)
     return 0;
 }
 
-int plop(char *path, char *leftPart)
+int plop(char *path, char **leftPart)
 {
   if (strlen(path) == 0)
     {
@@ -248,7 +248,7 @@ int plop(char *path, char *leftPart)
   if (path[0] == '/')//si ca commence par un / alors on le dégage
     path = path + 1;
 
-  printf("on a viré le 1er slash ? = %s\n", path);
+  //printf("on a viré le 1er slash ? = %s\n", path);
 
   int i = 0;
   int ct = 0;
@@ -262,56 +262,18 @@ int plop(char *path, char *leftPart)
   i = 0;
   while (path[0] != '\0' && path[0] != '/')
     {
-      printf("path[0] = [%c]\n", path[0]);
+      //printf("path[0] = [%c]\n", path[0]);
       newString[i] = path[0];
-      printf("newString[i] = [%c]\n", newString[i]);
+      //printf("newString[i] = [%c]\n", newString[i]);
       path++;//on incremente le pointeur du coup on bouf la chaine petit a petit (et apres avoir fait la copie du char dans newString)
       i++;
     }
   newString[i] = '\0';
-  printf("final = %s\n", newString);
-  leftPart = newString;
-  printf("leftPart = %s\n", leftPart);
-  return (0);
-}
-
-char *getMostLeftPathPart(char *path)
-{
-  int i = 1;
-  int ct = 1;
-
-  if (strlen(path) <= 1)// genre si c'est que "/" ben je sais pas trop quoi faire
-    {
-      return path;
-    }
-
-  while (path[i] != '\0')
-    {
-      if (path[i] == '/')//on compte pas le 1er
-	{
-	  break;
-	}
-      ct++;
-      i++;
-    }
-
-  char *newString = malloc(ct * sizeof(char));
-  i = 1;
-  while (path[i] != '\0')
-    {
-      newString[i - 1] = path[i];
-      i++;
-    }
-  newString[i - 1] = '\0';
-  //printf("newString = %s\n", newString);
-
-  i = 0;
-  while (path[i] != '\0')
-    {
-      path = path + 1;
-      i++;
-    }
-  return newString;
+  //printf("pffff = %s\n", path);
+  //printf("final = %s\n", newString);
+  *leftPart = newString;
+  //printf("i de merde = %d\n", i);
+  return (i + 1);
 }
 
 //au debut ROOT_INODE
@@ -319,24 +281,27 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
 {
   iNodeEntry pIE;
   char fileDataBlock[BLOCK_SIZE];
-
+  
   getINodeEntry(inode, &pIE);
   ReadBlock(pIE.Block[0], fileDataBlock);
   printf("remaining path = %s\n", pathToFind);
-  //char *leftPathPart = getMostLeftPathPart(pathToFind);
-  char *leftPathPart = NULL;
-  int ret = plop(pathToFind, leftPathPart);
-
-  printf("maiiiiiiiisssss what ? = %s\n", leftPathPart);
-
-  if (ret == -1)
-    printf("CEST FINI !!\n");
-  
-  printf("newString = %s\n", leftPathPart);
-  
+    
   if (isFolder(pIE) == 1)
     {
       printf("folder\n");
+
+      char *leftPathPart = NULL;
+      int ret = plop(pathToFind, &leftPathPart);
+      
+      
+      if (ret == -1) //on est arrivé au bout du path.
+	{
+	  printf("CEST FINI !!\n");
+	}
+      
+      pathToFind += ret;//on increment le ptr ici car dans plop() ca fonctionne pas... 
+      
+      printf("newString = %s\n", leftPathPart);
       DirEntry *pDirEntry = (DirEntry *)fileDataBlock;
       int nbFile = pIE.iNodeStat.st_size / sizeof(DirEntry);
       printf("nbFIle = %d\n", nbFile);
@@ -354,10 +319,9 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
     }
   else
     {
-      return pIE.iNodeStat.st_ino;
       printf("file = %s\n", pathToFind);
+      return pIE.iNodeStat.st_ino;
     }
-  
 }
 
 int bd_countfreeblocks(void) {
@@ -372,8 +336,30 @@ int bd_create(const char *pFilename) {
 	return -1;
 }
 
+/*void nique2(char *prout)
+{
+  &prout = &(malloc(2 * sizeof(char)));
+  prout[0] = 'a';
+  prout[1] = '\0';
+  }*/
+
+void nique(char **prout)
+{
+  *prout = malloc(2 * sizeof(char));
+  prout[0][0] = 'a';
+  prout[0][1] = '\0';
+  //char *caca = malloc(2 * sizeof(char));
+  //caca[0] = 'a';
+  //caca[1] = '\0';
+  //*prout = caca;
+}
+
 int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
 
+  /*char * prout = NULL;
+  nique2(prout);
+  printf("prout = %s\n", prout);
+  return;*/
   ino inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
   iNodeEntry pIE;
 
