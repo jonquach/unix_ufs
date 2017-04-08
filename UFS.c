@@ -178,7 +178,7 @@ int getINodeEntry(ino iNodeNum, iNodeEntry *inodeEntry) {
   iNodeEntry *inodesBlock = NULL;
   char blockData[BLOCK_SIZE];
   
-  printf("inode number = %d\n", iNodeNum);
+  //printf("inode number = %d\n", iNodeNum);
   
   if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
     return -1;
@@ -202,35 +202,6 @@ int getINodeEntry(ino iNodeNum, iNodeEntry *inodeEntry) {
   return 0;
 }
 
-/* PPPAAAATTTTAAATTTEEEEE*/
-/*
-void lolilol(const char *pFilename, char *buffer, int offset, int numbytes)
-{
-  UINT16 DirBlockNum = 6;
-  char DataBlockDirEntry[BLOCK_SIZE];
-  int iNodeNumber = 0;
-  
-  ReadBlock(DirBlockNum, DataBlockDirEntry);
-  DirEntry *pDirEntry = (DirEntry *)DataBlockDirEntry;
-
-  printf("mdr = %s\n", pDirEntry[5].Filename);
-
-  iNodeEntry pIE;
-  if (getINodeEntry(pDirEntry[5].iNode, &pIE) != 0)
-    printf("BBBAAMMM");
-  
-  printiNode(pIE);
-
-  //printf("contenu  (ou pas)= %d\n", pIE.iNodeStat.st_nlink);
-  char fileDataBlock[BLOCK_SIZE];
-  ReadBlock(pIE.Block[0], fileDataBlock);
-  printf("contenu = %s\n", fileDataBlock);
-  
-  //if (strcmp("toto.txt",pDirEntry[0].Filename) == 0) {
-  //  iNodeNumber = pDirEntry[0].iNode;
-  //}
-}
-*/
 int isFolder(iNodeEntry iNodeStuff)
 {
   if (iNodeStuff.iNodeStat.st_mode & G_IFDIR)
@@ -239,7 +210,7 @@ int isFolder(iNodeEntry iNodeStuff)
     return 0;
 }
 
-int plop(char *path, char **leftPart)
+int getLeftPart(char *path, char **leftPart)
 {
   if (strlen(path) == 0)
     {
@@ -248,11 +219,10 @@ int plop(char *path, char **leftPart)
   if (path[0] == '/')//si ca commence par un / alors on le dégage
     path = path + 1;
 
-  //printf("on a viré le 1er slash ? = %s\n", path);
-
   int i = 0;
   int ct = 0;
   char *newString = NULL;
+  
   while (path[i] != '\0' && path[i] != '/')
     {
       ct++;
@@ -262,17 +232,12 @@ int plop(char *path, char **leftPart)
   i = 0;
   while (path[0] != '\0' && path[0] != '/')
     {
-      //printf("path[0] = [%c]\n", path[0]);
       newString[i] = path[0];
-      //printf("newString[i] = [%c]\n", newString[i]);
       path++;//on incremente le pointeur du coup on bouf la chaine petit a petit (et apres avoir fait la copie du char dans newString)
       i++;
     }
   newString[i] = '\0';
-  //printf("pffff = %s\n", path);
-  //printf("final = %s\n", newString);
   *leftPart = newString;
-  //printf("i de merde = %d\n", i);
   return (i + 1);
 }
 
@@ -284,34 +249,35 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
   
   getINodeEntry(inode, &pIE);
   ReadBlock(pIE.Block[0], fileDataBlock);
-  printf("remaining path = %s\n", pathToFind);
+  //printf("remaining path = %s\n", pathToFind);
     
   if (isFolder(pIE) == 1)
     {
-      printf("folder\n");
+      //printf("folder\n");
 
       char *leftPathPart = NULL;
-      int ret = plop(pathToFind, &leftPathPart);
+      int ret = getLeftPart(pathToFind, &leftPathPart);
       
       
       if (ret == -1) //on est arrivé au bout du path.
 	{
-	  printf("CEST FINI !!\n");
+	  printf("On termine sur un dossier !!\n");
+	  return -1;
 	}
       
-      pathToFind += ret;//on increment le ptr ici car dans plop() ca fonctionne pas... 
+      pathToFind += ret;//on increment le ptr ici car dans getLeftPart ca fonctionne pas... 
       
-      printf("newString = %s\n", leftPathPart);
+      //printf("newString = %s\n", leftPathPart);
       DirEntry *pDirEntry = (DirEntry *)fileDataBlock;
       int nbFile = pIE.iNodeStat.st_size / sizeof(DirEntry);
-      printf("nbFIle = %d\n", nbFile);
+      //printf("nbFIle = %d\n", nbFile);
       int i = 0;
       while(i < nbFile)
 	{
-	  printf("current name = %s\n", pDirEntry[i].Filename);
+	  //printf("current name = %s\n", pDirEntry[i].Filename);
 	  if (strcmp(pDirEntry[i].Filename, leftPathPart) == 0)//si le nom de dossier est le meme que le nom de path suivant alors on peut choper son inode et recommencer
 	    {
-	      printf("match\n");
+	      //printf("match\n");
      	      return getInodeNumberFromPath(pDirEntry[i].iNode, pathToFind); //dans la structure y a l'inode a coté du filename
 	    }
 	  i++;
@@ -319,7 +285,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
     }
   else
     {
-      printf("file = %s\n", pathToFind);
+      //printf("file = %s\n", pathToFind);
       return pIE.iNodeStat.st_ino;
     }
 }
@@ -336,30 +302,7 @@ int bd_create(const char *pFilename) {
 	return -1;
 }
 
-/*void nique2(char *prout)
-{
-  &prout = &(malloc(2 * sizeof(char)));
-  prout[0] = 'a';
-  prout[1] = '\0';
-  }*/
-
-void nique(char **prout)
-{
-  *prout = malloc(2 * sizeof(char));
-  prout[0][0] = 'a';
-  prout[0][1] = '\0';
-  //char *caca = malloc(2 * sizeof(char));
-  //caca[0] = 'a';
-  //caca[1] = '\0';
-  //*prout = caca;
-}
-
 int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
-
-  /*char * prout = NULL;
-  nique2(prout);
-  printf("prout = %s\n", prout);
-  return;*/
   ino inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
   iNodeEntry pIE;
 
