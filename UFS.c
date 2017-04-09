@@ -102,7 +102,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind);
 int findFirstFreeInode(char freeInodes[BLOCK_SIZE]);
 int getFreeInode();
 void updateInode(iNodeEntry *ine);
-void updateDir(iNodeEntry * destDirInode, ino inodeNum);
+void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc);
 
 int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition) {
   if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
@@ -341,7 +341,7 @@ int bd_create(const char *pFilename) {
   getInodeEntry(dirname, &iNodeDir);
 
   // addDirEntryInDir(&iNodeDir, fileInode, strFile);
-  updateDir(&iNodeDir, iNodeEntry.iNodeStat.st_ino);
+  updateDir(&iNodeDir, iNodeEntry.iNodeStat.st_ino, 0);
 
   return 0;
 }
@@ -448,7 +448,6 @@ void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc)
   WriteBlock(destDirInode->Block[0], dataBlock);
 
 }
-
 
 void updateInode(iNodeEntry *ine)
 {  
