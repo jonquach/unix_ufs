@@ -9,11 +9,11 @@ echo "--------------------------------------------------------------------"
 echo "                     montrer le contenu du disque"
 echo "--------------------------------------------------------------------"
 ./ufs ls /
-./ufs ls /doc
-./ufs ls /doc/tmp
-./ufs ls /doc/tmp/subtmp
-./ufs ls /rep
-./ufs ls /Bonjour
+#./ufs ls /doc
+#./ufs ls /doc/tmp
+#./ufs ls /doc/tmp/subtmp
+#./ufs ls /rep
+#./ufs ls /Bonjour
 
 echo
 echo
