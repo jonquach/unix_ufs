@@ -221,7 +221,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
       
       if (ret == -1) //on est arrivé au bout du path.
 	{
-	  printf("On termine sur un dossier !!\n");
+	  // printf("On termine sur un dossier !!\n");
 	  return iNodeEntry.iNodeStat.st_ino;
 	}
       
@@ -303,7 +303,7 @@ int findFirstFreeBlock(char freeInodes[BLOCK_SIZE])
   }
   return curInode;
 }
-
+/*
 int seizeFreeBlock() {
   char freeBlocksData[BLOCK_SIZE];
   ReadBlock(FREE_BLOCK_BITMAP, freeBlocksData);
@@ -319,6 +319,7 @@ int seizeFreeBlock() {
   WriteBlock(FREE_BLOCK_BITMAP, freeBlocksData);
   return blockNum;
 }
+*/
 
 int getFreeBlock()
 {
@@ -340,14 +341,34 @@ int getFreeBlock()
   return -1;
 }
 
-int bd_countfreeblocks(void)
-{
-	return 0;
+int bd_countfreeblocks(void) {
+  int nbFreeBlocks;
+  char freeBlock[BLOCK_SIZE];
+
+  ReadBlock(FREE_BLOCK_BITMAP, freeBlock);
+
+  for (int i = 0; i < N_BLOCK_ON_DISK; ++i) {
+    if (freeBlock[i] != 0)
+      nbFreeBlocks++;
+  }
+
+  return nbFreeBlocks;
 }
 
 int bd_stat(const char *pFilename, gstat *pStat)
 {
-	return -1;
+  ino iNodeNum;
+  iNodeEntry iNodeEntry;
+
+  iNodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
+
+  if (iNodeNum == -2)
+    return -1;
+
+  getInodeEntry(iNodeNum, &iNodeEntry);
+  *pStat = iNodeEntry.iNodeStat;
+
+  return 0;
 }
 
 /*
@@ -425,9 +446,6 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   return ctRead;
 }
 
-void updateInode(iNodeEntry *ine);
-void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename);
-
 int bd_mkdir(const char *pDirName)
 {
   char pathRight[FILENAME_SIZE];
@@ -498,6 +516,7 @@ int bd_mkdir(const char *pDirName)
 
   //on save le block avant le cast
   WriteBlock(freeBlockNum, innerBlock);
+  return 0;
 }
 
 
@@ -604,7 +623,39 @@ int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
     return -1;
 }
 
+/*
+  Cette fonction est utilisée pour copier le contenu d’un lien symbolique pPathLien, dans le buffer
+  pBuffer de taille sizeBuffer. Ce contenu est une chaîne de caractère, sans NULL à la fin, représentant
+  le path du fichier sur lequel ce lien symbolique pointe. Cette fonction permettra ainsi au système de fichier,
+  une fois montée dans Linux, de déréférencer les liens symboliques. Si le fichier pPathLien n’existe pas
+  ou qu’il n’est pas un lien symbolique, retournez -1. Sinon, retournez le nombre de caractères lus.
+*/
 int bd_readlink(const char *pPathLien, char *pBuffer, int sizeBuffer) {
+  int nb = 0;
+  ino iNodeNum;
+  iNodeEntry iNodeEntry;
+  char blockData[BLOCK_SIZE];
+
+  iNodeNum = getInodeNumberFromPath(ROOT_INODE, pPathLien);
+
+  // Fichier inexsitant
+  if (iNodeNum == -2)
     return -1;
+
+  getInodeEntry(iNodeNum, &iNodeEntry);
+
+  // printf("%d\n%d\n", iNodeEntry.iNodeStat.st_mode & G_IFLNK, G_IFLNK);
+
+  if (iNodeEntry.iNodeStat.st_mode & G_IFLNK != G_IFLNK)
+    return -1;
+
+  ReadBlock(iNodeEntry.Block[0], blockData);
+
+  while (nb < iNodeEntry.iNodeStat.st_size && nb < sizeBuffer) {
+    pBuffer[nb] = blockData[nb];
+    ++nb;
+  }
+
+  return nb;
 }
 
