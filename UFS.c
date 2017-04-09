@@ -324,15 +324,15 @@ int bd_countfreeblocks(void) {
 }
 
 int bd_stat(const char *pFilename, gstat *pStat) {
-  ino iNode;
+  ino iNodeNum;
   iNodeEntry iNodeEntry;
 
-  iNode = getInodeNumberFromPath(ROOT_INODE, pFilename);
+  iNodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
 
-  if (iNode == -2)
+  if (iNodeNum == -2)
     return -1;
 
-  getInodeEntry(iNode, &iNodeEntry);
+  getInodeEntry(iNodeNum, &iNodeEntry);
   *pStat = iNodeEntry.iNodeStat;
 
   return 0;
@@ -552,7 +552,39 @@ int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
     return -1;
 }
 
+/*
+  Cette fonction est utilisée pour copier le contenu d’un lien symbolique pPathLien, dans le buffer
+  pBuffer de taille sizeBuffer. Ce contenu est une chaîne de caractère, sans NULL à la fin, représentant
+  le path du fichier sur lequel ce lien symbolique pointe. Cette fonction permettra ainsi au système de fichier,
+  une fois montée dans Linux, de déréférencer les liens symboliques. Si le fichier pPathLien n’existe pas
+  ou qu’il n’est pas un lien symbolique, retournez -1. Sinon, retournez le nombre de caractères lus.
+*/
 int bd_readlink(const char *pPathLien, char *pBuffer, int sizeBuffer) {
+  int nb = 0;
+  ino iNodeNum;
+  iNodeEntry iNodeEntry;
+  char blockData[BLOCK_SIZE];
+
+  iNodeNum = getInodeNumberFromPath(ROOT_INODE, pPathLien);
+
+  // Fichier inexsitant
+  if (iNodeNum == -2)
     return -1;
+
+  getInodeEntry(iNodeNum, &iNodeEntry);
+
+  // printf("%d\n%d\n", iNodeEntry.iNodeStat.st_mode & G_IFLNK, G_IFLNK);
+
+  if (iNodeEntry.iNodeStat.st_mode & G_IFLNK != G_IFLNK)
+    return -1;
+
+  ReadBlock(iNodeEntry.Block[0], blockData);
+
+  while (nb < iNodeEntry.iNodeStat.st_size && nb < sizeBuffer) {
+    pBuffer[nb] = blockData[nb];
+    ++nb;
+  }
+
+  return nb;
 }
 
