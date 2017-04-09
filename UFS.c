@@ -221,7 +221,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
       
       if (ret == -1) //on est arrivé au bout du path.
 	{
-	  printf("On termine sur un dossier !!\n");
+	  // printf("On termine sur un dossier !!\n");
 	  return iNodeEntry.iNodeStat.st_ino;
 	}
       
@@ -310,11 +310,32 @@ int getFreeBlock()
 }
 
 int bd_countfreeblocks(void) {
-	return 0;
+  int nbFreeBlocks;
+  char freeBlock[BLOCK_SIZE];
+
+  ReadBlock(FREE_BLOCK_BITMAP, freeBlock);
+
+  for (int i = 0; i < N_BLOCK_ON_DISK; ++i) {
+    if (freeBlock[i] != 0)
+      nbFreeBlocks++;
+  }
+
+  return nbFreeBlocks;
 }
 
 int bd_stat(const char *pFilename, gstat *pStat) {
-	return -1;
+  ino iNode;
+  iNodeEntry iNodeEntry;
+
+  iNode = getInodeNumberFromPath(ROOT_INODE, pFilename);
+
+  if (iNode == -2)
+    return -1;
+
+  getInodeEntry(iNode, &iNodeEntry);
+  *pStat = iNodeEntry.iNodeStat;
+
+  return 0;
 }
 
 /*
@@ -390,9 +411,6 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   return ctRead;
 }
 
-void updateInode(iNodeEntry *ine);
-void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename);
-
 int bd_mkdir(const char *pDirName)
 {
   char pathRight[FILENAME_SIZE];
@@ -427,7 +445,7 @@ int bd_mkdir(const char *pDirName)
   //maj du dossier parent
   updateDir(&iNodeEntryLeft, freeInodeNum, 1, pathRight);
 
-  
+  return 0;
 }
 
 
