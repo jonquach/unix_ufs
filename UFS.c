@@ -94,6 +94,7 @@ void printiNode(iNodeEntry iNode) {
 /* ----------------------------------------------------------------------------------------
 					            à vous de jouer, maintenant!
    ---------------------------------------------------------------------------------------- */
+int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition);
 int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry);
 int isFolder(iNodeEntry iNodeStuff);
 int getLeftPart(char *path, char **leftPart);
@@ -101,6 +102,31 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind);
 int findFirstFreeInode(char freeInodes[BLOCK_SIZE]);
 int getFreeInode();
 int getFreeBlock();
+void updateInode(iNodeEntry *ine);
+void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename);
+
+int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition) {
+  if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
+    return -1;
+
+  if (iNodeNum >= 0 && iNodeNum <= 15)
+  {
+    *iNodeBlockNum = 4;
+    *iNodePosition = iNodeNum;
+  }
+  else if (iNodeNum >= 16 && iNodeNum <= 31)
+  {
+    *iNodeBlockNum = 5;
+    //on fait la difference pour partir de 0 dans le bloc 2
+    *iNodePosition = NUM_INODE_PER_BLOCK - iNodeNum;
+  }
+
+  printf("iNodeNum = %d\n", iNodeNum);
+  printf("iNodeBlockNum = %d\n", *iNodeBlockNum);
+  printf("iNodePosition = %d\n", *iNodePosition);
+
+  return 0;
+}
 
 /*Recupere le inodeEntry en utilisant un numéro d'inode*/
 int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry)
@@ -216,7 +242,15 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
 	    }
 	  i++;
 	}
+      // NOT FOUND
+    // printf("pathToFind %d\n", strlen(pathToFind));
+    // printf("pathToFind %s\n", pathToFind);
+    if (strlen(pathToFind) != 0) {
+      // Folder does not exist
       return -1;
+    }
+    // File does not exist
+    return -2;
     }
   else
     {
@@ -283,8 +317,53 @@ int bd_stat(const char *pFilename, gstat *pStat) {
 	return -1;
 }
 
+/*
+  Create a empty file, with rwx permision at the pointed path
+  Return: 0 on success, -1 if directory does not exist, -2 if file alread exist
+*/
 int bd_create(const char *pFilename) {
-	return -1;
+  char filename[FILENAME_SIZE];
+  char dirname[BLOCK_SIZE];
+  iNodeEntry iNodeEntry, iNodeDir;
+  ino iNodeNum;
+  ino dirInode = 0;
+
+  iNodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
+
+  if (GetDirFromPath(pFilename, dirname) == 0)
+    return (-1);
+
+  printf("%s\n", dirname);
+
+  printf("INDOE NUM %d\n", iNodeNum);
+
+  if (iNodeNum == -1) return -1; // Directory does not exist
+  if (iNodeNum != -2) return -2; // File already exist
+
+  printf("INDOE NUM %d\n", iNodeNum);
+
+  iNodeNum = getFreeInode();
+
+  printf("INDOE NUM %d\n", iNodeNum);
+
+  getInodeEntry(iNodeNum, &iNodeEntry);
+  iNodeEntry.iNodeStat.st_ino = iNodeNum;
+  iNodeEntry.iNodeStat.st_mode = G_IFREG;
+  iNodeEntry.iNodeStat.st_mode |= G_IRWXU | G_IRWXG;
+  iNodeEntry.iNodeStat.st_nlink = 1;
+  iNodeEntry.iNodeStat.st_size = 0;
+  iNodeEntry.iNodeStat.st_blocks = 0;
+
+  updateInode(&iNodeEntry);
+
+  dirInode = getInodeNumberFromPath(ROOT_INODE, dirname);
+
+  getInodeEntry(dirname, &iNodeDir);
+
+  // addDirEntryInDir(&iNodeDir, fileInode, strFile);
+  updateDir(&iNodeDir, iNodeEntry.iNodeStat.st_ino, 0, filename);
+
+  return 0;
 }
 
 int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
@@ -373,7 +452,7 @@ void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char * filename
   
   //on déplace le pointeur pour se mettre sur le dernier
   dirEntry += (NumberofDirEntry(destDirInode->iNodeStat.st_size)) - 1;
-  
+
   //maintenant on maj le contenu du nouveau dirEntry
   dirEntry->iNode = inodeNum;
   strcpy(dirEntry->Filename, filename);
@@ -384,7 +463,6 @@ void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char * filename
   //et on le save
   WriteBlock(destDirInode->Block[0], dataBlock);
 }
-
 
 void updateInode(iNodeEntry *ine)
 {  
