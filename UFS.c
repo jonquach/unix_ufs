@@ -136,7 +136,7 @@ int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry)
   iNodeEntry *inodesBlock = NULL;
   char blockData[BLOCK_SIZE];
   
-  //printf("inode number = %d\n", iNodeNum);
+  // printf("inode number = %d\n", iNodeNum);
   
   if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
     return -1;
@@ -387,37 +387,35 @@ int bd_create(const char *pFilename)
 
   if (GetDirFromPath(pFilename, dirname) == 0)
     return (-1);
-
-  printf("%s\n", dirname);
-
-  printf("INDOE NUM %d\n", iNodeNum);
+  if (GetFilenameFromPath(pFilename, filename) == 0)
+    return (-1);
 
   if (iNodeNum == -1) return -1; // Directory does not exist
   if (iNodeNum != -2) return -2; // File already exist
 
-  printf("INDOE NUM %d\n", iNodeNum);
+  // printf("INDOE NUM %d\n", iNodeNum);
 
   iNodeNum = getFreeInode();
 
-  printf("INDOE NUM %d\n", iNodeNum);
+  // printf("INDOE NUM %d\n", iNodeNum);
 
   getInodeEntry(iNodeNum, &iNodeEntry);
   iNodeEntry.iNodeStat.st_ino = iNodeNum;
-  iNodeEntry.iNodeStat.st_mode = G_IFREG;
-  iNodeEntry.iNodeStat.st_mode |= G_IRWXU | G_IRWXG;
+  iNodeEntry.iNodeStat.st_mode = G_IFREG | G_IRWXU | G_IRWXG;
   iNodeEntry.iNodeStat.st_nlink = 1;
   iNodeEntry.iNodeStat.st_size = 0;
   iNodeEntry.iNodeStat.st_blocks = 0;
 
-  updateInode(&iNodeEntry);
-
   dirInode = getInodeNumberFromPath(ROOT_INODE, dirname);
 
-  getInodeEntry(dirname, &iNodeDir);
+  getInodeEntry(dirInode, &iNodeDir);
+
+  // printf("iNodeDir.iNodeStat.st_ino --> %d\n", iNodeDir.iNodeStat.st_ino);
+  // printf("iNodeEntry.iNodeStat.st_ino --> %d\n", iNodeEntry.iNodeStat.st_ino);
 
   // addDirEntryInDir(&iNodeDir, fileInode, strFile);
   updateDir(&iNodeDir, iNodeEntry.iNodeStat.st_ino, 0, filename);
-  
+  updateInode(&iNodeEntry);
 
   return 0;
 }
@@ -432,7 +430,6 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   getInodeEntry(inodeNum, &iNodeEntry);
   
   ReadBlock(iNodeEntry.Block[0], fileData);
-
 
   while (i < (offset + numbytes) && i < iNodeEntry.iNodeStat.st_size)
     {
@@ -520,7 +517,7 @@ int bd_mkdir(const char *pDirName)
 }
 
 
-void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char * filename)
+void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename)
 {
   char dataBlock[BLOCK_SIZE];
   DirEntry *dirEntry;
