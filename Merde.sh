@@ -21,8 +21,20 @@ echo "--------------------------------------------------------------------"
 echo "                          tests de lecture"
 echo "--------------------------------------------------------------------"
 
-./ufs read /doc/tmp/subtmp/b.txt 0 0
+# ./ufs read /doc/tmp/subtmp/b.txt 0 0
 ./ufs read /b.txt 0 30
 #./ufs read /b.txt 5 10
 #./ufs read /b.txt 10 30
 #./ufs read /b.txt 10 5
+
+echo
+echo
+echo "--------------------------------------------------------------------"
+echo "              Tester la création d'un fichier vide"
+echo "--------------------------------------------------------------------"
+./ufs create /Doge.wow
+./ufs create /blah/Doge.wow
+./ufs ls /
+# ./ufs create /doc/tmp/new.txt 
+# ./ufs ls /
+# ./ufs ls /doc/tmp
