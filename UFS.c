@@ -293,9 +293,10 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
 }
 
 void updateInode(iNodeEntry *ine);
-void updateDir(iNodeEntry * destDirInode, ino inodeNum);
+void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc);
 
-int bd_mkdir(const char *pDirName) {
+int bd_mkdir(const char *pDirName)
+{
   printf("mais nike ta mere\n");
   char pathRight[FILENAME_SIZE];
   char pathLeft[FILENAME_SIZE];
@@ -327,19 +328,23 @@ int bd_mkdir(const char *pDirName) {
   iNodeEntry newInodeEntryRight;
 
   //ajout du dossier enfant
-  updateDir(&iNodeEntryLeft, freeInodeNum);
+  updateDir(&iNodeEntryLeft, freeInodeNum, 1);
   
 }
 
 
-void updateDir(iNodeEntry * destDirInode, ino inodeNum)
+void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc)
 {
   char dataBlock[BLOCK_SIZE];
   char filename[FILENAME_SIZE];
   DirEntry *dirEntry;
 
+  //printf("combien de fichiers = %d\n", destDirInode->iNodeStat.st_size / sizeof(DirEntry));
+  
   //On incrémente le nombre de link de left (puisqu'on va lui ajouter un fichier à l'interieur)
-  destDirInode->iNodeStat.st_nlink++;
+  if (inc == 1)
+    destDirInode->iNodeStat.st_nlink++;
+
   //on update la size du dossier avec elle meme + un fichier
   destDirInode->iNodeStat.st_size += sizeof(DirEntry);
   //on save
@@ -351,16 +356,21 @@ void updateDir(iNodeEntry * destDirInode, ino inodeNum)
   dirEntry = (DirEntry *) dataBlock;
 
   //printf("ca c interessant (ou pas) = %d\n", NumberofDirEntry(destDirInode->iNodeStat.st_size));
-  printf("combien de fichiers = %d\n", NumberofDirEntry(dirEntry));
-  printf("voyons le 1er fichier = %s\n", dirEntry[3].Filename);
-  
-  //on augmente la taille du dirEntry pour en ajouter 1
-  dirEntry += (NumberofDirEntry(destDirInode->iNodeStat.st_size)) - 1;
+  //printf("voyons le 1er fichier = %s\n", dirEntry[2].Filename);
 
+  
+  //printf("11111111 = %d\n", destDirInode->iNodeStat.st_size);
+  //printf("22222222 = %d\n", NumberofDirEntry(destDirInode->iNodeStat.st_size));
+  
+  //on déplace le pointeur pour se mettre sur le dernier
+  dirEntry += (NumberofDirEntry(destDirInode->iNodeStat.st_size)) - 1;
+  
+  
   //maintenant on maj le contenu du nouveau dirEntry
   dirEntry->iNode = inodeNum;
   strcpy(dirEntry->Filename, filename);
 
+  //et on le save
   WriteBlock(destDirInode->Block[0], dataBlock);
 
 }
