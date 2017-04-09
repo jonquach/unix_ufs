@@ -290,12 +290,23 @@ int getFreeInode()
   return -1;
 }
 
-int getFreeBlock()
+int findFirstFreeBlock(char freeInodes[BLOCK_SIZE])
 {
+  int curInode = ROOT_INODE;
+
+  while (curInode < N_INODE_ON_DISK && freeInodes[curInode] == 0) {
+    curInode++;
+  }
+
+  if (curInode >= N_INODE_ON_DISK) {
+    return -1;
+  }
+  return curInode;
+}
+
+int seizeFreeBlock() {
   char freeBlocksData[BLOCK_SIZE];
-
   ReadBlock(FREE_BLOCK_BITMAP, freeBlocksData);
-
   int blockNum = BASE_BLOCK_INODE + (N_INODE_ON_DISK / NUM_INODE_PER_BLOCK);
   while (freeBlocksData[blockNum] == 0 && blockNum < N_BLOCK_ON_DISK) {
     blockNum++;
@@ -304,16 +315,38 @@ int getFreeBlock()
     return -1;
   }
   freeBlocksData[blockNum] = 0;
-  printf("GLOFS: Saisie bloc %d\n", blockNum);
+  printf("GLOFS: Saisie bloc %d\n",blockNum);
   WriteBlock(FREE_BLOCK_BITMAP, freeBlocksData);
   return blockNum;
 }
 
-int bd_countfreeblocks(void) {
+int getFreeBlock()
+{
+  char dataBlock[BLOCK_SIZE];
+  int blockNum = 6;
+  
+  ReadBlock(FREE_BLOCK_BITMAP, dataBlock);
+
+  while (dataBlock[blockNum] == 0 && blockNum < N_BLOCK_ON_DISK) {
+    blockNum++;
+  }
+  
+  if (blockNum < N_BLOCK_ON_DISK) {
+    dataBlock[blockNum] = 0;
+    printf("GLOFS: Saisie bloc %d\n", blockNum);
+    WriteBlock(FREE_BLOCK_BITMAP, dataBlock);
+    return blockNum;
+  }
+  return -1;
+}
+
+int bd_countfreeblocks(void)
+{
 	return 0;
 }
 
-int bd_stat(const char *pFilename, gstat *pStat) {
+int bd_stat(const char *pFilename, gstat *pStat)
+{
 	return -1;
 }
 
@@ -321,7 +354,8 @@ int bd_stat(const char *pFilename, gstat *pStat) {
   Create a empty file, with rwx permision at the pointed path
   Return: 0 on success, -1 if directory does not exist, -2 if file alread exist
 */
-int bd_create(const char *pFilename) {
+int bd_create(const char *pFilename)
+{
   char filename[FILENAME_SIZE];
   char dirname[BLOCK_SIZE];
   iNodeEntry iNodeEntry, iNodeDir;
@@ -362,6 +396,7 @@ int bd_create(const char *pFilename) {
 
   // addDirEntryInDir(&iNodeDir, fileInode, strFile);
   updateDir(&iNodeDir, iNodeEntry.iNodeStat.st_ino, 0, filename);
+  
 
   return 0;
 }
@@ -420,14 +455,49 @@ int bd_mkdir(const char *pDirName)
 
   //on récupère un numéro d'inode libre (pour right)
   ino freeInodeNum = getFreeInode();
-  
-  ino newInodeNumRight;
-  iNodeEntry newInodeEntryRight;
+  int freeBlockNum = getFreeBlock();
+  iNodeEntry freeInodeEntry;
 
   //maj du dossier parent
   updateDir(&iNodeEntryLeft, freeInodeNum, 1, pathRight);
 
+  printf("not chez moi !\n");
+  //Recupération du inode stuff de l'inode libre. (celle du nouveau dossier a ajouter)
+  getInodeEntry(freeInodeNum, &freeInodeEntry);
+  //on update avec le nouveau bloc de donnée
+  freeInodeEntry.Block[0] = freeBlockNum;
+  //on update le numéro de l'inode libre
+  freeInodeEntry.iNodeStat.st_ino = freeInodeNum;
+  //les flags donné dans le sujet
+  freeInodeEntry.iNodeStat.st_mode = G_IFDIR | G_IRWXU | G_IRWXG;
+  //on met à 2 pour . et .. et le dossier parent
+  freeInodeEntry.iNodeStat.st_nlink = 3;
+  //Il contient . et ..
+  freeInodeEntry.iNodeStat.st_size = 2 * sizeof(DirEntry);
+  //bon bah si j'ai bien compris y a tj que 1 block de toute facon...
+  freeInodeEntry.iNodeStat.st_blocks = 1;
+  //on save tout ca
+  updateInode(&freeInodeEntry);
+
+  //faut ajouter . et .. maintenant
+  char innerBlock[BLOCK_SIZE];
+
+  ReadBlock(freeBlockNum, innerBlock);
   
+  DirEntry * dirEntry = (DirEntry *) innerBlock;
+
+  //pointe sur lui meme
+  strcpy(dirEntry[0].Filename, ".");
+  dirEntry[0].iNode = freeInodeNum;
+  
+  //dirEntry++;
+  
+  //pointe sur le right (dossier contenant)
+  strcpy(dirEntry[1].Filename, "..");
+  dirEntry[1].iNode = iNodeNumRight;
+
+  //on save le block avant le cast
+  WriteBlock(freeBlockNum, innerBlock);
 }
 
 
