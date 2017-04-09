@@ -100,7 +100,7 @@ int getLeftPart(char *path, char **leftPart);
 ino getInodeNumberFromPath(ino inode, char *pathToFind);
 int findFirstFreeInode(char freeInodes[BLOCK_SIZE]);
 int getFreeInode();
-
+int getFreeBlock();
 
 /*Recupere le inodeEntry en utilisant un numéro d'inode*/
 int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry)
@@ -256,6 +256,25 @@ int getFreeInode()
   return -1;
 }
 
+int getFreeBlock()
+{
+  char freeBlocksData[BLOCK_SIZE];
+
+  ReadBlock(FREE_BLOCK_BITMAP, freeBlocksData);
+
+  int blockNum = BASE_BLOCK_INODE + (N_INODE_ON_DISK / NUM_INODE_PER_BLOCK);
+  while (freeBlocksData[blockNum] == 0 && blockNum < N_BLOCK_ON_DISK) {
+    blockNum++;
+  }
+  if (blockNum >= N_BLOCK_ON_DISK) {
+    return -1;
+  }
+  freeBlocksData[blockNum] = 0;
+  printf("GLOFS: Saisie bloc %d\n", blockNum);
+  WriteBlock(FREE_BLOCK_BITMAP, freeBlocksData);
+  return blockNum;
+}
+
 int bd_countfreeblocks(void) {
 	return 0;
 }
@@ -293,11 +312,10 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
 }
 
 void updateInode(iNodeEntry *ine);
-void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc);
+void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename);
 
 int bd_mkdir(const char *pDirName)
 {
-  printf("mais nike ta mere\n");
   char pathRight[FILENAME_SIZE];
   char pathLeft[FILENAME_SIZE];
   ino iNodeNumLeft;
@@ -327,19 +345,17 @@ int bd_mkdir(const char *pDirName)
   ino newInodeNumRight;
   iNodeEntry newInodeEntryRight;
 
-  //ajout du dossier enfant
-  updateDir(&iNodeEntryLeft, freeInodeNum, 1);
+  //maj du dossier parent
+  updateDir(&iNodeEntryLeft, freeInodeNum, 1, pathRight);
+
   
 }
 
 
-void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc)
+void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char * filename)
 {
   char dataBlock[BLOCK_SIZE];
-  char filename[FILENAME_SIZE];
   DirEntry *dirEntry;
-
-  //printf("combien de fichiers = %d\n", destDirInode->iNodeStat.st_size / sizeof(DirEntry));
   
   //On incrémente le nombre de link de left (puisqu'on va lui ajouter un fichier à l'interieur)
   if (inc == 1)
@@ -354,25 +370,19 @@ void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc)
   ReadBlock(destDirInode->Block[0], dataBlock);
   //on le cast en structure de dossier
   dirEntry = (DirEntry *) dataBlock;
-
-  //printf("ca c interessant (ou pas) = %d\n", NumberofDirEntry(destDirInode->iNodeStat.st_size));
-  //printf("voyons le 1er fichier = %s\n", dirEntry[2].Filename);
-
-  
-  //printf("11111111 = %d\n", destDirInode->iNodeStat.st_size);
-  //printf("22222222 = %d\n", NumberofDirEntry(destDirInode->iNodeStat.st_size));
   
   //on déplace le pointeur pour se mettre sur le dernier
   dirEntry += (NumberofDirEntry(destDirInode->iNodeStat.st_size)) - 1;
-  
   
   //maintenant on maj le contenu du nouveau dirEntry
   dirEntry->iNode = inodeNum;
   strcpy(dirEntry->Filename, filename);
 
+  //printf("direntry filename = %s\n", dirEntry->Filename);
+  //printf("direntry inode = %s\n", dirEntry->iNode);
+
   //et on le save
   WriteBlock(destDirInode->Block[0], dataBlock);
-
 }
 
 
