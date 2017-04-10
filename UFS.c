@@ -208,8 +208,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
   if (strcmp(pathToFind, "/") == 0)
     return ROOT_INODE;
   getInodeEntry(inode, &iNodeEntry);
-  ReadBlock(iNodeEntry.Block[0], fileDataBlock);
-  //printf("remaining path = %s\n", pathToFind);
+  // printf("remaining path = %s\n", pathToFind);
     
   if (isFolder(iNodeEntry) == 1)
     {
@@ -228,6 +227,7 @@ ino getInodeNumberFromPath(ino inode, char *pathToFind)
       pathToFind += ret;//on increment le ptr ici car dans getLeftPart ca fonctionne pas... 
       
       //printf("newString = %s\n", leftPathPart);
+      ReadBlock(iNodeEntry.Block[0], fileDataBlock);
       DirEntry *dirEntry = (DirEntry *)fileDataBlock;
       int nbFile = iNodeEntry.iNodeStat.st_size / sizeof(DirEntry);
       //printf("nbFIle = %d\n", nbFile);
@@ -362,10 +362,15 @@ int bd_stat(const char *pFilename, gstat *pStat)
 
   iNodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
 
-  if (iNodeNum == -2)
+  if (iNodeNum == -2 || iNodeNum == -1)
     return -1;
 
   getInodeEntry(iNodeNum, &iNodeEntry);
+  // pStat->st_ino = iNodeEntry.iNodeStat.st_ino;
+  // // pStat->st_mode = iNodeEntry.iNodeStat.st_mode;
+  // // pStat->st_nlink = iNodeEntry.iNodeStat.st_nlink;
+  // // pStat->st_size = iNodeEntry.iNodeStat.st_size;
+  // // pStat->st_blocks = iNodeEntry.iNodeStat.st_blocks;
   *pStat = iNodeEntry.iNodeStat;
 
   return 0;

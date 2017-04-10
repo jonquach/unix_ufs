@@ -51,7 +51,6 @@ echo "--------------------------------------------------------------------"
 # ./ufs ls /Bonjour
 # ./ufs ls /
 
-
 echo
 echo
 echo "--------------------------------------------------------------------"
@@ -59,6 +58,9 @@ echo "              Tester la création d'un fichier vide"
 echo "--------------------------------------------------------------------"
 ./ufs create /Doge.wow
 ./ufs ls /
-# ./ufs create /doc/tmp/new.txt 
+./ufs ls /
+./ufs create /new.txt
+./ufs ls /
+# ./ufs create /doc/tmp/new.txt
 # ./ufs ls /
 # ./ufs ls /doc/tmp
