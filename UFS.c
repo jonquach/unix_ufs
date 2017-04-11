@@ -303,23 +303,6 @@ int findFirstFreeBlock(char freeInodes[BLOCK_SIZE])
   }
   return curInode;
 }
-/*
-int seizeFreeBlock() {
-  char freeBlocksData[BLOCK_SIZE];
-  ReadBlock(FREE_BLOCK_BITMAP, freeBlocksData);
-  int blockNum = BASE_BLOCK_INODE + (N_INODE_ON_DISK / NUM_INODE_PER_BLOCK);
-  while (freeBlocksData[blockNum] == 0 && blockNum < N_BLOCK_ON_DISK) {
-    blockNum++;
-  }
-  if (blockNum >= N_BLOCK_ON_DISK) {
-    return -1;
-  }
-  freeBlocksData[blockNum] = 0;
-  printf("GLOFS: Saisie bloc %d\n",blockNum);
-  WriteBlock(FREE_BLOCK_BITMAP, freeBlocksData);
-  return blockNum;
-}
-*/
 
 int getFreeBlock()
 {
@@ -340,6 +323,30 @@ int getFreeBlock()
   }
   return -1;
 }
+
+int ReleaseFreeInode(unsigned int inodeNumber)
+{
+  char blockData[BLOCK_SIZE];
+
+  ReadBlock(FREE_INODE_BITMAP, blockData);
+  blockData[inodeNumber] = 1;
+  
+  WriteBlock(FREE_INODE_BITMAP, blockData);
+  printf("GLOFS: Relache i-node %d\n", inodeNumber); //Check si c la bonne phrase
+  return (1);
+}
+
+
+int ReleaseFreeBlock(UINT16 BlockNum)
+{
+  char BlockFreeBitmap[BLOCK_SIZE];
+  
+  ReadBlock(FREE_BLOCK_BITMAP, BlockFreeBitmap);
+  BlockFreeBitmap[BlockNum] = 1;
+  printf("GLOFS: Relache bloc %d\n", BlockNum);
+  WriteBlock(FREE_BLOCK_BITMAP, BlockFreeBitmap);
+  return (1);
+} 
 
 int bd_countfreeblocks(void) {
   int nbFreeBlocks;
@@ -395,8 +402,10 @@ int bd_create(const char *pFilename)
   if (GetFilenameFromPath(pFilename, filename) == 0)
     return (-1);
 
-  if (iNodeNum == -1) return -1; // Directory does not exist
-  if (iNodeNum != -2) return -2; // File already exist
+  if (iNodeNum == -1)
+    return -1; // Directory does not exist
+  if (iNodeNum != -2)
+    return -2; // File already exist
 
   // printf("INDOE NUM %d\n", iNodeNum);
 
@@ -450,7 +459,7 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
 
 int bd_mkdir(const char *pDirName)
 {
-  char pathRight[FILENAME_SIZE];
+  char pathRight[FILENAME_SIZE]; //////max ?? Test dans rmdir. Faudra pe etre changé ici si ca se passe bien
   char pathLeft[FILENAME_SIZE];
   ino iNodeNumLeft;
   iNodeEntry iNodeEntryLeft;
@@ -510,15 +519,13 @@ int bd_mkdir(const char *pDirName)
   strcpy(dirEntry[0].Filename, ".");
   dirEntry[0].iNode = freeInodeNum;
   
-  //dirEntry++;
-  
   //pointe sur le right (dossier contenant)
   strcpy(dirEntry[1].Filename, "..");
   dirEntry[1].iNode = iNodeNumRight;
 
   //on save le block avant le cast
   WriteBlock(freeBlockNum, innerBlock);
-  return 0;
+  return (0);
 }
 
 
@@ -595,11 +602,79 @@ int bd_truncate(const char *pFilename, int NewSize) {
 }
 
 int bd_rmdir(const char *pFilename) {
-	return -1;
+  char *left;
+  char right[FILENAME_SIZE];
+  ino inodeLeft;
+  ino inodeRight;
+  iNodeEntry inodeEntryLeft;
+  iNodeEntry inodeEntryRight;
+  char blockLeft[BLOCK_SIZE];
+
+  //on découpe le path en left and right
+  GetFilenameFromPath(pFilename, right);
+  GetDirFromPath(pFilename, left);
+
+  //on recupere leur numéro d'inode
+  inodeLeft = getInodeNumberFromPath(ROOT_INODE, left);
+  inodeRight = getInodeNumberFromPath(ROOT_INODE, pFilename);
+
+  //on recupere leurs infos
+  getInodeEntry(inodeLeft, &inodeEntryLeft);
+  getInodeEntry(inodeRight, &inodeEntryRight);
+
+  //on check si c'est un dossier
+  if (isFolder(inodeEntryRight) != 1)
+    return (-2);
+  
+  //on exit si le dossier est pas vide
+  if(NumberofDirEntry(inodeEntryRight.iNodeStat.st_size) > 2)
+    return (-3);
+
+  //maintenant qu'on est bon on diminune le compteur
+  dirEntryLeft.iNodeStat.st_nlink--;
+
+
+  unsigned int copySizeLeft = inodeEntryLeft->iNodeStat.st_size; //ca ca sert à rien ????
+
+  //on diminue sa size à lui meme - 1
+  iNodeEntryLeft->iNodeStat.st_size -= sizeof(DirEntry);
+  //on update...
+  writeInodeOnDisk(iNodeEntryLeft);
+
+  int blockNum = iNodeEntryLeft->Block[0];
+  
+  ReadBlock(blockNum, block);
+  
+  DirEntry * dirItems = (DirEntry *) blockLeft;
+  
+  int i = 0;
+  int shift = 1;
+  int nbFile = inodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
+  
+  while (i < nbFile)
+    {
+      //si c'est le dossier a virer
+      if (strcmp(dirItems[i].Filename, right) == 0 || shift == 1)
+	{
+	  //on active le décallage
+	  shift = 1;
+	  dirItems[i] = dirItems[i + 1];
+	}
+      i++;
+    }
+  //on update notre dirEntry
+  WriteBlock(blockNum, blockLeft);
+
+  
+  writeINodeOnDisk(&dirInode);
+  ReleaseFreeInode(iNodeRight);
+  releaseFreeBlock(iNodeEntryRight.Block[0]);
+
+  return (0);
 }
 
 int bd_rename(const char *pFilename, const char *pDestFilename) {
-	return -1;
+  return (-1);
 }
 
 int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
