@@ -324,7 +324,7 @@ int getFreeBlock()
   return -1;
 }
 
-int ReleaseFreeInode(unsigned int inodeNumber)
+int releaseFreeInode(unsigned int inodeNumber)
 {
   char blockData[BLOCK_SIZE];
 
@@ -604,10 +604,10 @@ int bd_truncate(const char *pFilename, int NewSize) {
 int bd_rmdir(const char *pFilename) {
   char *left;
   char right[FILENAME_SIZE];
-  ino inodeLeft;
-  ino inodeRight;
-  iNodeEntry inodeEntryLeft;
-  iNodeEntry inodeEntryRight;
+  ino iNodeLeft;
+  ino iNodeRight;
+  iNodeEntry iNodeEntryLeft;
+  iNodeEntry iNodeEntryRight;
   char blockLeft[BLOCK_SIZE];
 
   //on découpe le path en left and right
@@ -615,41 +615,41 @@ int bd_rmdir(const char *pFilename) {
   GetDirFromPath(pFilename, left);
 
   //on recupere leur numéro d'inode
-  inodeLeft = getInodeNumberFromPath(ROOT_INODE, left);
-  inodeRight = getInodeNumberFromPath(ROOT_INODE, pFilename);
+  iNodeLeft = getInodeNumberFromPath(ROOT_INODE, left);
+  iNodeRight = getInodeNumberFromPath(ROOT_INODE, pFilename);
 
   //on recupere leurs infos
-  getInodeEntry(inodeLeft, &inodeEntryLeft);
-  getInodeEntry(inodeRight, &inodeEntryRight);
+  getInodeEntry(iNodeLeft, &iNodeEntryLeft);
+  getInodeEntry(iNodeRight, &iNodeEntryRight);
 
   //on check si c'est un dossier
-  if (isFolder(inodeEntryRight) != 1)
+  if (isFolder(iNodeEntryRight) != 1)
     return (-2);
   
   //on exit si le dossier est pas vide
-  if(NumberofDirEntry(inodeEntryRight.iNodeStat.st_size) > 2)
+  if(NumberofDirEntry(iNodeEntryRight.iNodeStat.st_size) > 2)
     return (-3);
 
   //maintenant qu'on est bon on diminune le compteur
-  dirEntryLeft.iNodeStat.st_nlink--;
+  iNodeEntryLeft.iNodeStat.st_nlink--;
 
 
-  unsigned int copySizeLeft = inodeEntryLeft->iNodeStat.st_size; //ca ca sert à rien ????
+  //unsigned int copySizeLeft = inodeEntryLeft->iNodeStat.st_size; //ca ca sert à rien ????
 
   //on diminue sa size à lui meme - 1
-  iNodeEntryLeft->iNodeStat.st_size -= sizeof(DirEntry);
+  iNodeEntryLeft.iNodeStat.st_size -= sizeof(DirEntry);
   //on update...
-  writeInodeOnDisk(iNodeEntryLeft);
+  updateInode(&iNodeEntryLeft);
 
-  int blockNum = iNodeEntryLeft->Block[0];
+  int blockNum = iNodeEntryLeft.Block[0];
   
-  ReadBlock(blockNum, block);
+  ReadBlock(blockNum, blockLeft);
   
   DirEntry * dirItems = (DirEntry *) blockLeft;
   
   int i = 0;
   int shift = 1;
-  int nbFile = inodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
+  int nbFile = iNodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
   
   while (i < nbFile)
     {
@@ -666,9 +666,9 @@ int bd_rmdir(const char *pFilename) {
   WriteBlock(blockNum, blockLeft);
 
   
-  writeINodeOnDisk(&dirInode);
-  ReleaseFreeInode(iNodeRight);
-  releaseFreeBlock(iNodeEntryRight.Block[0]);
+  updateInode(&iNodeEntryLeft);
+  releaseFreeInode(iNodeRight);
+  ReleaseFreeBlock(iNodeEntryRight.Block[0]);
 
   return (0);
 }
