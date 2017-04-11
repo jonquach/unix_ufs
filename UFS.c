@@ -452,7 +452,6 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
       i++;
     }
   buffer[ctRead] = '\0';
-  printf("while or not while that is the question = %s (taille = [%lu])\n", buffer, strlen(buffer));
 
   return ctRead;
 }
@@ -652,54 +651,62 @@ int bd_truncate(const char *pFilename, int NewSize) {
 }
 
 int bd_rmdir(const char *pFilename) {
-  char *left;
+  char left[500];//////////un bete ptr ca ferait pas l'affaire ?
   char right[FILENAME_SIZE];
   ino iNodeLeft;
   ino iNodeRight;
   iNodeEntry iNodeEntryLeft;
   iNodeEntry iNodeEntryRight;
   char blockLeft[BLOCK_SIZE];
+  int blockNumLeft;
 
   //on découpe le path en left and right
   GetFilenameFromPath(pFilename, right);
   GetDirFromPath(pFilename, left);
 
+  printf("path left = %s    path right = %s\n", left, right);
+
   //on recupere leur numéro d'inode
   iNodeLeft = getInodeNumberFromPath(ROOT_INODE, left);
   iNodeRight = getInodeNumberFromPath(ROOT_INODE, pFilename);
+
+  printf("inodeLeft = %d inodeRight = %d\n", iNodeLeft, iNodeRight);
 
   //on recupere leurs infos
   getInodeEntry(iNodeLeft, &iNodeEntryLeft);
   getInodeEntry(iNodeRight, &iNodeEntryRight);
 
-  //on check si c'est un dossier
+  //on check si c'est un dossier qu'on nous demande de supprimer
   if (isFolder(iNodeEntryRight) != 1)
     return (-2);
+
+  printf("iNodEntry right est un dossier !\n");
   
   //on exit si le dossier est pas vide
   if(NumberofDirEntry(iNodeEntryRight.iNodeStat.st_size) > 2)
-    return (-3);
+    {
+      printf("le dossier est vide !!\n");
+      return (-3);
+    }
 
   //maintenant qu'on est bon on diminune le compteur
   iNodeEntryLeft.iNodeStat.st_nlink--;
 
 
-  //unsigned int copySizeLeft = inodeEntryLeft->iNodeStat.st_size; //ca ca sert à rien ????
+  //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
+  int nbFile = iNodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
 
   //on diminue sa size à lui meme - 1
   iNodeEntryLeft.iNodeStat.st_size -= sizeof(DirEntry);
   //on update...
   updateInode(&iNodeEntryLeft);
-
-  int blockNum = iNodeEntryLeft.Block[0];
   
-  ReadBlock(blockNum, blockLeft);
-  
+  //Contenu du dossier parent à transformer en dirEntry
+  blockNumLeft = iNodeEntryLeft.Block[0];
+  ReadBlock(blockNumLeft, blockLeft);
   DirEntry * dirItems = (DirEntry *) blockLeft;
-  
   int i = 0;
-  int shift = 1;
-  int nbFile = iNodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
+  int shift = 0;
   
   while (i < nbFile)
     {
@@ -713,7 +720,7 @@ int bd_rmdir(const char *pFilename) {
       i++;
     }
   //on update notre dirEntry
-  WriteBlock(blockNum, blockLeft);
+  WriteBlock(blockNumLeft, blockLeft);
 
   
   updateInode(&iNodeEntryLeft);
