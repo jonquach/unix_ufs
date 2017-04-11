@@ -97,8 +97,8 @@ void printiNode(iNodeEntry iNode) {
 int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition);
 int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry);
 int isFolder(iNodeEntry iNodeStuff);
-int getLeftPart(char *path, char **leftPart);
-ino getInodeNumberFromPath(ino inode, char *pathToFind);
+int getLeftPart(const char *path, char **leftPart);
+ino getInodeNumberFromPath(ino inode, const char *pathToFind);
 int findFirstFreeInode(char freeInodes[BLOCK_SIZE]);
 int getFreeInode();
 int getFreeBlock();
@@ -168,7 +168,7 @@ int isFolder(iNodeEntry iNodeStuff)
     return 0;
 }
 
-int getLeftPart(char *path, char **leftPart)
+int getLeftPart(const char *path, char **leftPart)
 {
   if (strlen(path) == 0)
     {
@@ -200,7 +200,7 @@ int getLeftPart(char *path, char **leftPart)
 }
 
 //au debut ROOT_INODE
-ino getInodeNumberFromPath(ino inode, char *pathToFind)
+ino getInodeNumberFromPath(ino inode, const char *pathToFind)
 {
   iNodeEntry iNodeEntry;
   char fileDataBlock[BLOCK_SIZE];
@@ -452,7 +452,7 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
       i++;
     }
   buffer[ctRead] = '\0';
-  printf("while or not while that is the question = %s (taille = [%d])\n", buffer, strlen(buffer));
+  printf("while or not while that is the question = %s (taille = [%lu])\n", buffer, strlen(buffer));
 
   return ctRead;
 }
@@ -585,12 +585,62 @@ void updateInode(iNodeEntry *ine)
   WriteBlock(iNodeBlockNum, blockData);
 }
 
-int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes) { 
+int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes) {
 	return -1;
 }
 
+/*
+  Cette fonction créer un hardlink entre l’i-node du fichier pPathExistant et le nom de fichier
+  pPathNouveauLien. Assurez-vous que le fichier original pPathExistant n’est pas un répertoire (bit
+  G_IFDIR de st_mode à 0 et bit G_IFREG à 1), auquel cas retournez -3. Assurez-vous aussi que le
+  répertoire qui va contenir le lien spécifié dans pPathNouveauLien existe, sinon retournez -1. N’oubliezpas
+  d’incrémenter la valeur du champ st_nlink dans l’i-node. Assurez-vous que la commande
+  fonctionne aussi si le lien est créé dans le même répertoire, i.e.
+  bd_hardlink("/tmp/a.txt","/tmp/aln.txt")
+  Si le fichier pPathNouveauLien, existe déjà, retournez -2. Si le fichier pPathExistant est inexistant,
+  retournez -1. Si tout se passe bien, retournez 0.
+
+  Return:
+    * 0 on success
+    * -1 if file pPathExistant does not exist
+    * -2 if file pPathNouveauLien already exist
+    * -3 if file pPathExisitant is a directory
+*/
+
 int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien) {
-	return -1;
+  char dirname[BLOCK_SIZE];
+  char fhardlink[BLOCK_SIZE];
+  iNodeEntry iNodeDir;
+  iNodeEntry iNodeEntryExist;
+  iNodeEntry iNodeEntryNewFile;
+  ino iNodeNumDir;
+  ino iNodeNumExist;
+  ino iNodeNumNewFile;
+
+  iNodeNumExist = getInodeNumberFromPath(ROOT_INODE, pPathExistant);
+  iNodeNumNewFile = getInodeNumberFromPath(ROOT_INODE, pPathNouveauLien);
+
+  if (iNodeNumExist == -1) return -1; // pPathExistant directory does not exist
+  if (iNodeNumExist == -2) return -1; // pPathExistant file does not exist
+  if (iNodeNumNewFile == -1) return -1; // pPathNouveauLien directory does not exist
+  if (iNodeNumNewFile != -2) return -2; // pPathNouveauLien file already exist
+
+  getInodeEntry(iNodeNumExist, &iNodeEntryExist);
+
+  if ((iNodeEntryExist.iNodeStat.st_mode & G_IFDIR) == G_IFDIR) return -3;
+
+  GetDirFromPath(pPathNouveauLien, dirname);
+  iNodeNumDir = getInodeNumberFromPath(ROOT_INODE, dirname);
+
+  getInodeEntry(iNodeNumDir, &iNodeDir);
+
+  GetFilenameFromPath(pPathNouveauLien, fhardlink);
+
+  updateDir(&iNodeDir, iNodeEntryExist.iNodeStat.st_ino, 1, fhardlink);
+  iNodeEntryExist.iNodeStat.st_nlink++;
+  updateInode(&iNodeEntryExist);
+
+  return 0;
 }
 
 int bd_unlink(const char *pFilename) {
@@ -723,7 +773,7 @@ int bd_readlink(const char *pPathLien, char *pBuffer, int sizeBuffer) {
 
   // printf("%d\n%d\n", iNodeEntry.iNodeStat.st_mode & G_IFLNK, G_IFLNK);
 
-  if (iNodeEntry.iNodeStat.st_mode & G_IFLNK != G_IFLNK)
+  if ((iNodeEntry.iNodeStat.st_mode & G_IFLNK) != G_IFLNK)
     return -1;
 
   ReadBlock(iNodeEntry.Block[0], blockData);
