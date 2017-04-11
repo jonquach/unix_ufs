@@ -97,8 +97,8 @@ void printiNode(iNodeEntry iNode) {
 int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition);
 int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry);
 int isFolder(iNodeEntry iNodeStuff);
-int getLeftPart(char *path, char **leftPart);
-ino getInodeNumberFromPath(ino inode, char *pathToFind);
+int getLeftPart(const char *path, char **leftPart);
+ino getInodeNumberFromPath(ino inode, const char *pathToFind);
 int findFirstFreeInode(char freeInodes[BLOCK_SIZE]);
 int getFreeInode();
 int getFreeBlock();
@@ -168,7 +168,7 @@ int isFolder(iNodeEntry iNodeStuff)
     return 0;
 }
 
-int getLeftPart(char *path, char **leftPart)
+int getLeftPart(const char *path, char **leftPart)
 {
   if (strlen(path) == 0)
     {
@@ -200,7 +200,7 @@ int getLeftPart(char *path, char **leftPart)
 }
 
 //au debut ROOT_INODE
-ino getInodeNumberFromPath(ino inode, char *pathToFind)
+ino getInodeNumberFromPath(ino inode, const char *pathToFind)
 {
   iNodeEntry iNodeEntry;
   char fileDataBlock[BLOCK_SIZE];
