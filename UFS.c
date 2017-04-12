@@ -672,27 +672,38 @@ int bd_rmdir(const char *pFilename) {
 
   printf("inodeLeft = %d inodeRight = %d\n", iNodeLeft, iNodeRight);
 
+  if (iNodeLeft == -1 || iNodeLeft == -2 || iNodeRight == -1 || iNodeRight == -2)
+    {
+      printf("mais what\n");
+      return (-1);
+    }
+  printf("suite\n");
+
   //on recupere leurs infos
   getInodeEntry(iNodeLeft, &iNodeEntryLeft);
   getInodeEntry(iNodeRight, &iNodeEntryRight);
 
   //on check si c'est un dossier qu'on nous demande de supprimer
   if (isFolder(iNodeEntryRight) != 1)
-    return (-2);
+    {
+      printf("return du isFOlder sauvage\n");
+      return (-2);
+    }
 
   printf("iNodEntry right est un dossier !\n");
   
   //on exit si le dossier est pas vide
   if(NumberofDirEntry(iNodeEntryRight.iNodeStat.st_size) > 2)
     {
-      printf("le dossier est vide !!\n");
+      printf("le dossier est PAS vide !!\n");
       return (-3);
     }
 
   //maintenant qu'on est bon on diminune le compteur
   iNodeEntryLeft.iNodeStat.st_nlink--;
 
-
+  //-------------------------------------------------------------------------------------------------------Johnatan - removeDirEntryInDir pour tes beau yeux
+  
   //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
   int nbFile = iNodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
 
@@ -722,7 +733,7 @@ int bd_rmdir(const char *pFilename) {
   //on update notre dirEntry
   WriteBlock(blockNumLeft, blockLeft);
 
-  
+  //-----------------------------------------------------------------------------removeDirEntryInDir FIN
   updateInode(&iNodeEntryLeft);
   releaseFreeInode(iNodeRight);
   ReleaseFreeBlock(iNodeEntryRight.Block[0]);
