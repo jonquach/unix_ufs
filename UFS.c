@@ -702,7 +702,7 @@ int bd_rmdir(const char *pFilename) {
   //maintenant qu'on est bon on diminune le compteur
   iNodeEntryLeft.iNodeStat.st_nlink--;
 
-  //-------------------------------------------------------------------------------------------------------Johnatan - removeDirEntryInDir pour tes beau yeux
+  //-------------------------------------------------------------------------------------------------------Johnatan - removeDirEntryInDir pour tes beaux yeux
   
   //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
   int nbFile = iNodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
@@ -741,8 +741,82 @@ int bd_rmdir(const char *pFilename) {
   return (0);
 }
 
-int bd_rename(const char *pFilename, const char *pDestFilename) {
-  return (-1);
+int bd_rename(const char *pFilename, const char *pDestFilename)
+{
+  char leftSrc[];
+  cher rightDest[];
+  char rightSrc[];
+  iNodeEntry rightInodeEntrySrc;
+  iNodeEntry rightInodeEntryDest;
+  iNodeEntry leftInodeEntrySrc;
+  
+  if(strcmp(pFilename, pDestFilename) == 0)
+    {
+      return 0;
+    }
+
+  int ret = bd_hardlink(pFilename, pDestFilename);
+  
+  if (ret == -1 || ret == -2)//fail
+    {
+      return (-1);
+    }
+  else if (ret == 0)//fichier. Donc on peut le virer 
+    {
+      bd_unlink(pFilename);
+    }
+  else//c'est un dossier
+    {
+      GetDirFromPath(pFilename, leftSrc);
+      GetDirFromPath(pDestFilename, rightDest);
+      GetFilenameFromPath(pDestFilename, rightSrc); 
+
+      ino leftSrcIno =  getInodeNumberFromPath(ROOT_INODE, leftSrc);
+      ino rightSrcIno =  getInodeNumberFromPath(ROOT_INODE, rightSrc);
+      ino rightDestIno =  getInodeNumberFromPath(ROOT_INODE, rightDest);
+
+      if (leftSrcIno == -1 || leftSrcIno == -2 || rightSrcIno == -1 || rightSrcIno == -2 || rightDestIno == -1 || rightDestIno == -2)
+	{
+	  return (-1);//check si c'est le bon return
+	}
+      
+      getInodeEntry(leftSrcIno, &leftInodeEntrySrc);
+      getInodeEntry(leftDestIno, &leftInodeEntryDest);
+      getInodeEntry(rightSrcIno, &rightInodeEntrySrc);
+
+      //supprimer le dossier
+      //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
+      int nbFile = leftInodeEntrySrc.iNodeStat.st_size / sizeof(DirEntry);
+
+      //on diminue sa size à lui meme - 1
+      leftInodeEntrySrc.iNodeStat.st_size -= sizeof(DirEntry);
+      //on update...
+      updateInode(&leftInodeEntrySrc);
+
+      //Contenu du dossier parent à transformer en dirEntry
+      int blockNumLeft = leftInodeEntrySrc.Block[0];
+      char blockLeft[BLOCK_SIZE];
+      ReadBlock(blockNumLeft, blockLeft);
+      DirEntry * dirItems = (DirEntry *) blockLeft;
+      int i = 0;
+      int shift = 0;
+
+      while (i < nbFile)
+	{
+	  //si c'est le dossier a virer
+	  if (strcmp(dirItems[i].Filename, rightDest) == 0 || shift == 1)
+	    {
+	      //on active le décallage
+	      shift = 1;
+	      dirItems[i] = dirItems[i + 1];
+	    }
+	  i++;
+	}
+      //on update notre dirEntry
+      WriteBlock(blockNumLeft, blockLeft);
+    }
+  
+  return (0);
 }
 
 int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
