@@ -586,14 +586,16 @@ void updateInode(iNodeEntry *ine)
 
 int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes) {
 
-  /*  iNodeEntry fileInodeEntry;
+  iNodeEntry fileInodeEntry;
   
   if ((ino fileInoNumber = getFileINodeNumFromPath(ROOT_INODE, pFilename)) == -1)
     return (-1);
   getInodeEntry(fileInodeNumber, &fileInodeEntry);
   
+  if (isFolder(fileINodeEntry == 1) //c'est un dossier
+      return (-2);
 
-  if(fileInode.iNodeStat.st_mode & G_IFDIR) return -2;
+      
   if(fileInode.iNodeStat.st_size < offset &&  offset >= N_BLOCK_PER_INODE*BLOCK_SIZE) return -4;
   if(fileInode.iNodeStat.st_size < offset) return -3;
   if(fileInode.iNodeStat.st_size == 0 && numbytes > 0 && fileInode.iNodeStat.st_blocks == 0) {
@@ -602,7 +604,6 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
     fileInode.Block[0] = blockNum;
     fileInode.iNodeStat.st_blocks += 1;
   }
-  */  
   
   return (-1);
 }
