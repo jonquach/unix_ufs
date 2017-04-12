@@ -750,8 +750,43 @@ int bd_unlink(const char *pFilename) {
   return 0;
 }
 
+/*
+  Cette fonction change la taille d’un fichier présent sur le disque. Pour les erreurs, la fonction retourne -1
+  si le fichier pFilename est inexistant, -2 si pFilename est un répertoire. Autrement, la fonction retourne
+  la nouvelle taille du fichier. Si NewSize est plus grand que la taille actuelle, ne faites rien et retournez la
+  taille actuelle comme valeur. N’oubliez-pas de marquer comme libre les blocs libérés par cette
+  fonction, si le changement de taille est tel que certains blocs sont devenus inutiles. Dans notre cas,
+  ce sera si on tronque à la taille 0.
+
+  Return:
+    * NewSize or actual size on success
+    * -1 if pFilename does not exist
+    * -2 if pFilname is a directory
+
+*/
 int bd_truncate(const char *pFilename, int NewSize) {
-	return -1;
+  ino iNodeNum;
+  iNodeEntry iNodeEntryFile;
+
+  iNodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
+
+  if (iNodeNum == -1 || iNodeNum == -2) return -1;
+
+  getInodeEntry(iNodeNum, &iNodeEntryFile);
+
+  if ((iNodeEntryFile.iNodeStat.st_mode & G_IFDIR) == G_IFDIR) return -2;
+
+  if (NewSize > iNodeEntryFile.iNodeStat.st_size) {
+    return iNodeEntryFile.iNodeStat.st_size;
+  }
+
+  iNodeEntryFile.iNodeStat.st_size = NewSize;
+  updateInode(&iNodeEntryFile);
+
+  if (NewSize == 0)
+    ReleaseFreeBlock(iNodeEntryFile.Block[0]);
+
+  return NewSize;
 }
 
 int bd_rmdir(const char *pFilename) {
