@@ -1000,8 +1000,44 @@ int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
   return NumberofDirEntry(iNodeEntry.iNodeStat.st_size);
 }
 
+/*
+  Cette fonction est utilisée pour créer un lien symbolique vers pPathExistant. Vous devez ainsi créer
+  un nouveau fichier pPathNouveauLien, en prenant soin que les drapeaux G_IFLNK et G_IFREG soient
+  tous les deux à 1. La chaîne de caractère pPathExistant est simplement copiée intégralement dans le
+  nouveau fichier créé (pensez à réutiliser bd_write ici). Ne pas vérifier la validité de pPathExistant.
+  Assurez-vous que le répertoire qui va contenir le lien spécifié dans pPathNouveauLien existe, sinon
+  retournez -1. Si le fichier pPathNouveauLien, existe déjà, retournez -2. Si tout se passe bien, retournez
+  0. ATTENTION! Afin de vous simplifier la vie, si une commande est envoyée à votre système UFS sur
+  un lien symbolique, ignorez ce fait. Ainsi, si /slnb.txt pointe vers b.txt et que vous recevez la commande
+  ./ufs read /slnb.txt 0 40, cette lecture retournera b.txt et non pas le contenu de b.txt. Notez
+  l’absence du caractère « / » au début de la chaîne de caractères. La commande suivante bd_readlink
+  sera utilisée par le système d’exploitation pour faire le déréférencement du lien symbolique, plus tard
+  quand nous allons le monter dans Linux avec FUSE
+
+  Return:
+    * 0 on success
+    * -1 if pPathNouveauLien directory does not exist
+    * -2 if pPathNouveauLien already exist
+*/
 int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
-    return -1;
+  ino iNodeNumNew;
+  iNodeEntry iNodeEntryNewFile;
+
+  int ret = bd_create(pPathNouveauLien);
+
+  if (ret == -1 || ret == -2) return ret;
+
+  iNodeNumNew = getInodeNumberFromPath(ROOT_INODE, pPathNouveauLien);
+  getInodeEntry(iNodeNumNew, &iNodeEntryNewFile);
+
+  iNodeEntryNewFile.iNodeStat.st_mode |= G_IFLNK;
+  updateInode(&iNodeEntryNewFile);
+
+  int numbytes = strlen(pPathExistant) + 1;
+
+  bd_write(pPathNouveauLien, pPathExistant, 0, numbytes);
+
+  return 0;
 }
 
 /*
