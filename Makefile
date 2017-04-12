@@ -1,6 +1,6 @@
 all: ufs glofs
 cleanufs: clean
-re: clean all
+re: clean ufs
 
 ufsTest: UFS.o mainTest.o DisqueStegano.o lodepng.o
 	gcc mainTest.o UFS.o DisqueStegano.o lodepng.o -o ufsTest
