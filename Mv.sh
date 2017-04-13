@@ -4,17 +4,6 @@
 echo "Je copie le fichier google-go.png.orig vers google-go.png" 
 cp google-go.png.orig google-go.png
 
-echo
-echo "--------------------------------------------------------------------"
-echo "                     montrer le contenu du disque"
-echo "--------------------------------------------------------------------"
-./ufs ls /
-./ufs ls /doc
-./ufs ls /doc/tmp
-./ufs ls /doc/tmp/subtmp
-./ufs ls /rep
-./ufs ls /Bonjour
-
 echo 
 echo 
 echo "--------------------------------------------------------------------"
@@ -23,6 +12,14 @@ echo "--------------------------------------------------------------------"
 ./ufs ls /Bonjour
 ./ufs ls /doc
 ./ufs rename /doc/tmp /Bonjour/tmpmv
+
+
+echo -e "vielle pute"
+./ufs ls /Bonjour
+./ufs ls /doc
+
+
+
 echo -e "\nOn vérifie que le nombre de lien pour /Bonjour augmente de 1 et qu'il diminue de 1 pour /doc:"
 ./ufs ls /
 echo -e "\nOn vérifie que le sous-réperoire tmpmv contient encore subtmp et new.txt:"
@@ -34,7 +31,12 @@ echo -e "\nOn vérifie que le nombre de lien vers ce même répertoire n'augment
 
 
 
+echo -e "affichage de bonjour et doc"
+./ufs ls /Bonjour
+./ufs ls /doc
 
+
+echo -e "########################################################"
 
 echo 
 echo 
