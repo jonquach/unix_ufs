@@ -587,25 +587,71 @@ void updateInode(iNodeEntry *ine)
 int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes) {
 
   iNodeEntry fileInodeEntry;
+  int max = offset + numbytes;
+  int i = 0;
+  int octs = 0;
+  int ct = 0;
+  ino fileInodeNumber;
+  int freeBlock;
+  char dataBlock[BLOCK_SIZE];
+  char content[BLOCK_SIZE];
+
+  //Si y a rien a ecrire ca sert a rien de continuer
+  if (numbytes <= 0)
+    return (1);
   
-  if ((ino fileInoNumber = getFileINodeNumFromPath(ROOT_INODE, pFilename)) == -1)
+  if ((fileInodeNumber = getInodeNumberFromPath(ROOT_INODE, pFilename)) == -1)
     return (-1);
   getInodeEntry(fileInodeNumber, &fileInodeEntry);
   
-  if (isFolder(fileINodeEntry == 1) //c'est un dossier
-      return (-2);
-
-      
-  if(fileInode.iNodeStat.st_size < offset &&  offset >= N_BLOCK_PER_INODE*BLOCK_SIZE) return -4;
-  if(fileInode.iNodeStat.st_size < offset) return -3;
-  if(fileInode.iNodeStat.st_size == 0 && numbytes > 0 && fileInode.iNodeStat.st_blocks == 0) {
-    int blockNum = seizeFreeBlock();
-    if(blockNum == -1) return 0; // On fait quoi avec plus de block disponible.
-    fileInode.Block[0] = blockNum;
-    fileInode.iNodeStat.st_blocks += 1;
-  }
+  if (isFolder(fileInodeEntry) == 1) //c'est un dossier
+    return (-2);
   
-  return (-1);
+  if (offset > fileInodeEntry.iNodeStat.st_size)
+    return (-3);
+
+  //soit là soit dans le while.
+  if (offset > BLOCK_SIZE) ////////////////offset >= à la base
+    return (-4);
+
+
+  //check si le fichier est vraiment vide
+  if (fileInodeEntry.iNodeStat.st_blocks == 0 && fileInodeEntry.iNodeStat.st_size == 0)
+    {
+      if ((freeBlock = getFreeBlock()) == -1) /////////////check que getFreeBlock renvoie -1
+	return (0);
+      fileInodeEntry.iNodeStat.st_blocks += 1;
+      fileInodeEntry.Block[0] = freeBlock;
+    }
+  
+  
+  ReadBlock(fileInodeEntry.Block[0], dataBlock);
+  
+
+  //on lit le contenu actuel du fichier
+  while (i < fileInodeEntry.iNodeStat.st_size)
+    {
+      content[i] = dataBlock[i];
+      i++;
+    }
+
+  i = offset;
+  while (ct <= numbytes && i < max &&  i <= BLOCK_SIZE)
+    //while (i < (offset + numbytes) && i <= BLOCK_SIZE && cpt <= numbytes)
+    {
+      content[i] = buffer[ct];
+      octs++;
+      ct++;
+      i++;
+    }
+
+  WriteBlock(fileInodeEntry.Block[0] , content);
+  fileInodeEntry.iNodeStat.st_size = octs + offset;
+
+  //mettre a jours le contenu maintenant qu'on a fini
+  updateInode(&fileInodeEntry);
+
+  return octs;
 }
 
 /*
