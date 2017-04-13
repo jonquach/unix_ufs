@@ -641,13 +641,10 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
     //while (i < (offset + numbytes) && i <= BLOCK_SIZE && cpt <= numbytes)
     {
       content[i] = buffer[ct];
-      printf("i = %d ct = %d octs = %d char=[%c]\n", i, ct, octs, content[i]);
       octs++;
       ct++;
       i++;
     }
-
-  printf("olol = %c\n", content[i]);
 
   WriteBlock(fileInodeEntry.Block[0] , content);
 
