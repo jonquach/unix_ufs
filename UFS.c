@@ -637,16 +637,24 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
 
   i = offset;
   while (ct <= numbytes && i < max &&  i <= BLOCK_SIZE)
+  //while (ct <= numbytes &&  i <= BLOCK_SIZE)
     //while (i < (offset + numbytes) && i <= BLOCK_SIZE && cpt <= numbytes)
     {
       content[i] = buffer[ct];
+      printf("i = %d ct = %d octs = %d char=[%c]\n", i, ct, octs, content[i]);
       octs++;
       ct++;
       i++;
     }
 
+  printf("olol = %c\n", content[i]);
+
   WriteBlock(fileInodeEntry.Block[0] , content);
-  fileInodeEntry.iNodeStat.st_size = octs + offset;
+
+  if (offset + octs > fileInodeEntry.iNodeStat.st_size) //////////JJJJJJJAAAIIIIIIIII PPPPPPPAAAAAASSSSSSS   CCCCCCOOOOOOOMMMMMMMMMPPPPPPPPRRRRRRRIIIIIIIIISSSSSSSSS
+    {
+      fileInodeEntry.iNodeStat.st_size = octs + offset;
+    }
 
   //mettre a jours le contenu maintenant qu'on a fini
   updateInode(&fileInodeEntry);
