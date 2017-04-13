@@ -1031,6 +1031,7 @@ int bd_rename(const char *pFilename, const char *pDestFilename)
       WriteBlock(blockNum,block);
       return (0);
     }
+  return (0);
 }
 
 int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
