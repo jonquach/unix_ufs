@@ -802,8 +802,43 @@ int bd_unlink(const char *pFilename) {
   return 0;
 }
 
+/*
+  Cette fonction change la taille d’un fichier présent sur le disque. Pour les erreurs, la fonction retourne -1
+  si le fichier pFilename est inexistant, -2 si pFilename est un répertoire. Autrement, la fonction retourne
+  la nouvelle taille du fichier. Si NewSize est plus grand que la taille actuelle, ne faites rien et retournez la
+  taille actuelle comme valeur. N’oubliez-pas de marquer comme libre les blocs libérés par cette
+  fonction, si le changement de taille est tel que certains blocs sont devenus inutiles. Dans notre cas,
+  ce sera si on tronque à la taille 0.
+
+  Return:
+    * NewSize or actual size on success
+    * -1 if pFilename does not exist
+    * -2 if pFilname is a directory
+
+*/
 int bd_truncate(const char *pFilename, int NewSize) {
-	return -1;
+  ino iNodeNum;
+  iNodeEntry iNodeEntryFile;
+
+  iNodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
+
+  if (iNodeNum == -1 || iNodeNum == -2) return -1;
+
+  getInodeEntry(iNodeNum, &iNodeEntryFile);
+
+  if ((iNodeEntryFile.iNodeStat.st_mode & G_IFDIR) == G_IFDIR) return -2;
+
+  if (NewSize > iNodeEntryFile.iNodeStat.st_size) {
+    return iNodeEntryFile.iNodeStat.st_size;
+  }
+
+  iNodeEntryFile.iNodeStat.st_size = NewSize;
+  updateInode(&iNodeEntryFile);
+
+  if (NewSize == 0)
+    ReleaseFreeBlock(iNodeEntryFile.Block[0]);
+
+  return NewSize;
 }
 
 int bd_rmdir(const char *pFilename) {
@@ -1017,8 +1052,44 @@ int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
   return NumberofDirEntry(iNodeEntry.iNodeStat.st_size);
 }
 
+/*
+  Cette fonction est utilisée pour créer un lien symbolique vers pPathExistant. Vous devez ainsi créer
+  un nouveau fichier pPathNouveauLien, en prenant soin que les drapeaux G_IFLNK et G_IFREG soient
+  tous les deux à 1. La chaîne de caractère pPathExistant est simplement copiée intégralement dans le
+  nouveau fichier créé (pensez à réutiliser bd_write ici). Ne pas vérifier la validité de pPathExistant.
+  Assurez-vous que le répertoire qui va contenir le lien spécifié dans pPathNouveauLien existe, sinon
+  retournez -1. Si le fichier pPathNouveauLien, existe déjà, retournez -2. Si tout se passe bien, retournez
+  0. ATTENTION! Afin de vous simplifier la vie, si une commande est envoyée à votre système UFS sur
+  un lien symbolique, ignorez ce fait. Ainsi, si /slnb.txt pointe vers b.txt et que vous recevez la commande
+  ./ufs read /slnb.txt 0 40, cette lecture retournera b.txt et non pas le contenu de b.txt. Notez
+  l’absence du caractère « / » au début de la chaîne de caractères. La commande suivante bd_readlink
+  sera utilisée par le système d’exploitation pour faire le déréférencement du lien symbolique, plus tard
+  quand nous allons le monter dans Linux avec FUSE
+
+  Return:
+    * 0 on success
+    * -1 if pPathNouveauLien directory does not exist
+    * -2 if pPathNouveauLien already exist
+*/
 int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
-    return -1;
+  ino iNodeNumNew;
+  iNodeEntry iNodeEntryNewFile;
+
+  int ret = bd_create(pPathNouveauLien);
+
+  if (ret == -1 || ret == -2) return ret;
+
+  iNodeNumNew = getInodeNumberFromPath(ROOT_INODE, pPathNouveauLien);
+  getInodeEntry(iNodeNumNew, &iNodeEntryNewFile);
+
+  iNodeEntryNewFile.iNodeStat.st_mode |= G_IFLNK;
+  updateInode(&iNodeEntryNewFile);
+
+  int numbytes = strlen(pPathExistant) + 1;
+
+  bd_write(pPathNouveauLien, pPathExistant, 0, numbytes);
+
+  return 0;
 }
 
 /*
