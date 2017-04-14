@@ -1310,7 +1310,9 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
     //Recupération du contenu des inodes
     if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0)
-      return -1;
+      return (-1);
+    if (getInodeEntry(destIno, &destLeftInodeEntry) != 0)
+      return (-1);
     
 
     //printf("mais what = %s\n", pDestFilename);
@@ -1361,14 +1363,13 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     srcLeftInodeEntry.iNodeStat.st_nlink--;
     updateInode(&srcLeftInodeEntry);
 
-    if (getInodeEntry(destIno, &destLeftInodeEntry) != 0) return -1;
-    //updateDir(&destLeftInodeEntry, srcIno, destRight);
+    
     updateDir(&destLeftInodeEntry, srcIno, 1, destRight);
 
     // Augmenter le  nb de link
-    if (getInodeEntry(destIno, &destLeftInodeEntry) != 0) return -1;
-    destLeftInodeEntry.iNodeStat.st_nlink++;
-    updateInode(&destLeftInodeEntry);
+    //if (getInodeEntry(destIno, &destLeftInodeEntry) != 0) return -1;
+    //destLeftInodeEntry.iNodeStat.st_nlink++;
+    //updateInode(&destLeftInodeEntry);
 
     if (getInodeEntry(srcIno, &srcInodeEntry) != 0) return -1;
 
