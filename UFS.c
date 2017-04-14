@@ -136,7 +136,6 @@ int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry)
   iNodeEntry *inodesBlock = NULL;
   char blockData[BLOCK_SIZE];
 
-  // printf("inode number = %d\n", iNodeNum);
 
   if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
     return -1;
@@ -208,11 +207,9 @@ ino getInodeNumberFromPath(ino inode, const char *pathToFind)
   if (strcmp(pathToFind, "/") == 0)
     return ROOT_INODE;
   getInodeEntry(inode, &iNodeEntry);
-  // printf("remaining path = %s\n", pathToFind);
 
   if (isFolder(iNodeEntry) == 1)
     {
-      //printf("folder\n");
 
       char *leftPathPart = NULL;
       int ret = getLeftPart(pathToFind, &leftPathPart);
@@ -220,31 +217,24 @@ ino getInodeNumberFromPath(ino inode, const char *pathToFind)
 
       if (ret == -1) //on est arrivé au bout du path.
 	{
-	  // printf("On termine sur un dossier !!\n");
 	  return iNodeEntry.iNodeStat.st_ino;
 	}
 
       pathToFind += ret;//on increment le ptr ici car dans getLeftPart ca fonctionne pas...
 
-      //printf("newString = %s\n", leftPathPart);
       ReadBlock(iNodeEntry.Block[0], fileDataBlock);
       DirEntry *dirEntry = (DirEntry *)fileDataBlock;
       int nbFile = iNodeEntry.iNodeStat.st_size / sizeof(DirEntry);
-      //printf("nbFIle = %d\n", nbFile);
       int i = 0;
       while(i < nbFile)
 	{
-	  //printf("current name = %s\n", pDirEntry[i].Filename);
 	  if (strcmp(dirEntry[i].Filename, leftPathPart) == 0)//si le nom de dossier est le meme que le nom de path suivant alors on peut choper son inode et recommencer
 	    {
-	      //printf("match\n");
      	      return getInodeNumberFromPath(dirEntry[i].iNode, pathToFind); //dans la structure y a l'inode a coté du filename
 	    }
 	  i++;
 	}
       // NOT FOUND
-    // printf("pathToFind %d\n", strlen(pathToFind));
-    // printf("pathToFind %s\n", pathToFind);
     if (strlen(pathToFind) != 0) {
       // Folder does not exist
       return -1;
@@ -254,7 +244,6 @@ ino getInodeNumberFromPath(ino inode, const char *pathToFind)
     }
   else
     {
-      //printf("file = %s\n", pathToFind);
       return iNodeEntry.iNodeStat.st_ino;
     }
 }
@@ -283,7 +272,7 @@ int getFreeInode()
 
   if (freeInode != -1) {
     freeInodesBlock[freeInode] = 0;
-    printf("GLOFS: Saisie i-node %d\n", freeInode); //check si c le bon message
+    printf("GLOFS: Saisie i-node %d\n", freeInode);
     WriteBlock(FREE_INODE_BITMAP, freeInodesBlock);
     return freeInode;
   }
@@ -332,12 +321,12 @@ int releaseFreeInode(unsigned int inodeNumber)
   blockData[inodeNumber] = 1;
 
   WriteBlock(FREE_INODE_BITMAP, blockData);
-  printf("GLOFS: Relache i-node %d\n", inodeNumber); //Check si c la bonne phrase
+  printf("GLOFS: Relache i-node %d\n", inodeNumber);
   return (1);
 }
 
 
-int ReleaseFreeBlock(UINT16 BlockNum)
+int ReleaseFreeBlock(unsigned int BlockNum)
 {
   char BlockFreeBitmap[BLOCK_SIZE];
 
@@ -373,11 +362,6 @@ int bd_stat(const char *pFilename, gstat *pStat)
     return -1;
 
   getInodeEntry(iNodeNum, &iNodeEntry);
-  // pStat->st_ino = iNodeEntry.iNodeStat.st_ino;
-  // // pStat->st_mode = iNodeEntry.iNodeStat.st_mode;
-  // // pStat->st_nlink = iNodeEntry.iNodeStat.st_nlink;
-  // // pStat->st_size = iNodeEntry.iNodeStat.st_size;
-  // // pStat->st_blocks = iNodeEntry.iNodeStat.st_blocks;
   *pStat = iNodeEntry.iNodeStat;
 
   return 0;
@@ -434,7 +418,7 @@ int bd_create(const char *pFilename)
   return 0;
 }
 
-int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
+int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) { //#retfail
   ino inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
   iNodeEntry iNodeEntry;
   char fileData[BLOCK_SIZE];
@@ -456,7 +440,7 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   return ctRead;
 }
 
-int bd_mkdir(const char *pDirName)
+int bd_mkdir(const char *pDirName)   //#retfail
 {
   char pathRight[FILENAME_SIZE]; //////max ?? Test dans rmdir. Faudra pe etre changé ici si ca se passe bien
   char pathLeft[FILENAME_SIZE];
@@ -479,7 +463,7 @@ int bd_mkdir(const char *pDirName)
 
   //check que left est bien un dossier !
   if (isFolder(iNodeEntryLeft) != 1)//LNK aussi ?
-    return -1;
+    return (-1);
 
   //on récupère un numéro d'inode libre (pour right)
   ino freeInodeNum = getFreeInode();
@@ -690,14 +674,19 @@ int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien) {
   iNodeNumExist = getInodeNumberFromPath(ROOT_INODE, pPathExistant);
   iNodeNumNewFile = getInodeNumberFromPath(ROOT_INODE, pPathNouveauLien);
 
-  if (iNodeNumExist == -1) return -1; // pPathExistant directory does not exist
-  if (iNodeNumExist == -2) return -1; // pPathExistant file does not exist
-  if (iNodeNumNewFile == -1) return -1; // pPathNouveauLien directory does not exist
-  if (iNodeNumNewFile != -2) return -2; // pPathNouveauLien file already exist
+  if (iNodeNumExist == -1)
+    return (-1); // pPathExistant directory does not exist
+  if (iNodeNumExist == -2)
+    return (-1); // pPathExistant file does not exist
+  if (iNodeNumNewFile == -1)
+    return (-1); // pPathNouveauLien directory does not exist
+  if (iNodeNumNewFile != -2)
+    return (-2); // pPathNouveauLien file already exist
 
   getInodeEntry(iNodeNumExist, &iNodeEntryExist);
 
-  if ((iNodeEntryExist.iNodeStat.st_mode & G_IFDIR) == G_IFDIR) return -3;
+  if ((iNodeEntryExist.iNodeStat.st_mode & G_IFDIR) == G_IFDIR)
+    return -3;
 
   GetDirFromPath(pPathNouveauLien, dirname);
   iNodeNumDir = getInodeNumberFromPath(ROOT_INODE, dirname);
@@ -753,7 +742,8 @@ int bd_unlink(const char *pFilename) {
   // printf("iNodeNumDir %d\n", iNodeNumDir);
   // printf("iNodeNumFile %d\n", iNodeNumFile);
 
-  if ((iNodeEntryFile.iNodeStat.st_mode & G_IFREG) != G_IFREG) return -2;
+  if ((iNodeEntryFile.iNodeStat.st_mode & G_IFREG) != G_IFREG)
+    return -2;
 
   //
   //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
@@ -822,14 +812,16 @@ int bd_truncate(const char *pFilename, int NewSize) {
 
   iNodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
 
-  if (iNodeNum == -1 || iNodeNum == -2) return -1;
+  if (iNodeNum == -1 || iNodeNum == -2)
+    return (-1);
 
   getInodeEntry(iNodeNum, &iNodeEntryFile);
 
-  if ((iNodeEntryFile.iNodeStat.st_mode & G_IFDIR) == G_IFDIR) return -2;
+  if ((iNodeEntryFile.iNodeStat.st_mode & G_IFDIR) == G_IFDIR)
+    return (-2);
 
   if (NewSize > iNodeEntryFile.iNodeStat.st_size) {
-    return iNodeEntryFile.iNodeStat.st_size;
+    return (iNodeEntryFile.iNodeStat.st_size);
   }
 
   iNodeEntryFile.iNodeStat.st_size = NewSize;
@@ -838,7 +830,7 @@ int bd_truncate(const char *pFilename, int NewSize) {
   if (NewSize == 0)
     ReleaseFreeBlock(iNodeEntryFile.Block[0]);
 
-  return NewSize;
+  return (NewSize);
 }
 
 int bd_rmdir(const char *pFilename) {
@@ -1344,8 +1336,8 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
     
     //on diminue sa size à lui meme - 1
-    srcLeftInodeEntry.iNodeStat.st_size -= BLOCK_SIZE / sizeof(DirEntry);
-    //srcLeftInodeEntry.iNodeStat.st_size -= sizeof(DirEntry);
+    //srcLeftInodeEntry.iNodeStat.st_size -= BLOCK_SIZE / sizeof(DirEntry);
+    srcLeftInodeEntry.iNodeStat.st_size -= sizeof(DirEntry);
     
     //on update
     //updateInode(&srcLeftInodeEntry);
@@ -1370,16 +1362,33 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 	}
 	i++;
       }
-    //on update notre dirEntry
+
+    ///---
+    srcLeftInodeEntry.iNodeStat.st_nlink--;
+    //on update le dossier parent src
+    updateInode(&srcLeftInodeEntry);
+    ///----
+    
     WriteBlock(blockNumLeft, blockLeft);
     ///////////////////////////////////////
 
-    printf("Histoire de voir = %d\n", srcLeftInodeEntry.iNodeStat.st_size / sizeof (DirEntry));
+    // Bon bah au grand mot les grands remedes
+
+    i = 0;
+    nbFile = srcLeftInodeEntry.iNodeStat.st_size / sizeof (DirEntry);
+    printf("trouvé = %d\n", nbFile);
+    while (i < nbFile)
+      {
+	printf("!!!!!!!!!!!!!!!!!! = %s\n", dirItems[i].Filename);
+	i++;
+      }
+    
+
 
 
 
     // Décrémenter le nombre de link
-    //if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0) return -1;
+    if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0) return -1;
     srcLeftInodeEntry.iNodeStat.st_nlink--;
 
     //on update le dossier parent src
@@ -1408,7 +1417,7 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
 
 
-int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
+int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) { //#retfail
   ino iNodeNum = getInodeNumberFromPath(ROOT_INODE, pDirLocation);
   iNodeEntry iNodeEntry;
   char dataBlock[BLOCK_SIZE];
@@ -1452,7 +1461,8 @@ int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
 
   int ret = bd_create(pPathNouveauLien);
 
-  if (ret == -1 || ret == -2) return ret;
+  if (ret == -1 || ret == -2)
+    return (ret);
 
   iNodeNumNew = getInodeNumberFromPath(ROOT_INODE, pPathNouveauLien);
   getInodeEntry(iNodeNumNew, &iNodeEntryNewFile);
@@ -1464,7 +1474,7 @@ int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
 
   bd_write(pPathNouveauLien, pPathExistant, 0, numbytes);
 
-  return 0;
+  return (0);
 }
 
 /*
