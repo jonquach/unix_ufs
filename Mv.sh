@@ -36,3 +36,15 @@ echo -e "affichage de bonjour et doc"
 
 
 echo -e "########################################################"
+
+cho 
+echo
+echo "--------------------------------------------------------------------"
+echo "          Tester la fonction rename sur fichier ordinaire"
+echo "--------------------------------------------------------------------"
+./ufs rename /Bonjour/LesAmis.txt /Bonjour/OncleG.txt
+./ufs ls /Bonjour
+./ufs rename /Bonjour/OncleG.txt /DansRoot.txt
+./ufs ls /Bonjour
+./ufs ls /
+
