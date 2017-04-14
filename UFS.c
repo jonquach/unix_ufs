@@ -429,24 +429,29 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   return ctRead;
 }
 
-int bd_mkdir(const char *pDirName)   //#retfail
+int bd_mkdir(const char *pDirName)
 {
-  char pathRight[FILENAME_SIZE]; //////max ?? Test dans rmdir. Faudra pe etre changé ici si ca se passe bien
-  char pathLeft[FILENAME_SIZE];
+  char pathRight[500];
+  char pathLeft[500];
   ino iNodeNumLeft;
   iNodeEntry iNodeEntryLeft;
   ino iNodeNumRight;
   iNodeEntry iNodeEntryRight;
 
+  if (getInodeNumberFromPath(ROOT_INODE, pDirName) >= 0)
+    return (-2);
+  
   //Découpage du path en left et right
   if (GetDirFromPath(pDirName, pathLeft) == 0)
     return (-1);
+
   if (GetFilenameFromPath(pDirName, pathRight) == 0)
     return (-1);
 
   //Récupération du numéro d'inode de left
   if ((iNodeNumLeft = getInodeNumberFromPath(ROOT_INODE, pathLeft)) == -1)
-    return (-1);//pas sur que ca soit -1
+    return (-1);
+
   //Récupération de l'entry pour left
   getInodeEntry(iNodeNumLeft, &iNodeEntryLeft);
 
@@ -1191,7 +1196,7 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
 
 
-int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) { //#retfail
+int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
   ino iNodeNum;
   if ((iNodeNum  = getInodeNumberFromPath(ROOT_INODE, pDirLocation)) < 0)
     return iNodeNum;
@@ -1199,10 +1204,6 @@ int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) { //#retfai
   char dataBlock[BLOCK_SIZE];
 
   getInodeEntry(iNodeNum, &iNodeEntry);
-
-  //if (iNodeNum == -1) return -1;// Le fichier pDirLocation est inexistant
-  //if (getINodeEntry(iNodeNum, &iNode) != 0)  return -1; // Le fichier pDirLocation est inexistant
-  //if (!(iNode.iNodeStat.st_mode & G_IFDIR)) return -1; // Le fichier pDirLocation n'est pas un répertoire
 
   ReadBlock(iNodeEntry.Block[0], dataBlock);
 
