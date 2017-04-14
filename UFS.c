@@ -1167,7 +1167,8 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
 
     // Décrémenter le nombre de link
-    srcLeftInodeEntry.iNodeStat.st_nlink--;
+    if (strcmp(srcLeft, destLeft) != 0)
+      srcLeftInodeEntry.iNodeStat.st_nlink--;
 
     //on update le dossier parent src
     updateInode(&srcLeftInodeEntry);
