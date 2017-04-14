@@ -1096,20 +1096,13 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     //récupération du numéro de bloc src pour swapper plus bas
     blockNum = srcInodeEntry.Block[0];
 
-    printf("mais what 1111 inodeEntry = %d\n", srcLeftInodeEntry.iNodeStat.st_size);
-
-    
-
-    ///////////////////////
     //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
     int nbFile = srcLeftInodeEntry.iNodeStat.st_size / sizeof (DirEntry);
-    printf("nFile = %d\n", nbFile);
     
     //on diminue sa size à lui meme - 1 (apres avoir save le nb de fichier dans nbFiles)
     srcLeftInodeEntry.iNodeStat.st_size -= sizeof(DirEntry);
-    //srcLeftInodeEntry.iNodeStat.st_size -= sizeof(DirEntry);
+
     updateInode(&srcLeftInodeEntry);
-    
     
     //Contenu du dossier parent à transformer en dirEntry
     int blockNumLeft = srcLeftInodeEntry.Block[0];
@@ -1118,18 +1111,6 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     DirEntry * dirItems = (DirEntry *) blockLeft;
     int i = 0;
     int shift = 0;
-
-
-    /////On check l'etat du stuff avant !
-   i = 0;
-    while (i < nbFile)
-      {
-	printf("!!!avant!!!!!!!!!!!!!!! = %s\n", dirItems[i].Filename);
-	i++;
-      }
-    i = 0;
-    ///////
-
 
     while (i < nbFile)
       {
@@ -1140,31 +1121,8 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 	}
 	i++;
       }
-
-
-
-
-    /////on check si ca a save ! -------------------------------
-    getInodeEntry(srcLeftIno, &srcLeftInodeEntry);
-    blockNumLeft = srcLeftInodeEntry.Block[0];
-    char blockLeft2[BLOCK_SIZE];
-    ReadBlock(blockNumLeft, blockLeft2);
-    dirItems = (DirEntry *) blockLeft2;
-    i = 0;
-    nbFile = srcLeftInodeEntry.iNodeStat.st_size / sizeof (DirEntry);
-    printf("trouvé = %d\n", nbFile);
-    while (i < nbFile)
-      {
-	printf("!!!milieu!!!!!!!!!!!!!!!! = %s\n", dirItems[i].Filename);
-	i++;
-      }
-
-
     
     WriteBlock(blockNumLeft, blockLeft);
-    ///////////////////////////////////////
-
-
 
     // Décrémenter le nombre de link
     if (strcmp(srcLeft, destLeft) != 0)
@@ -1188,32 +1146,6 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     //on fait le swap
     finalDirEntry->iNode = destIno;
     WriteBlock(blockNum, blockData);
-
-
-
-
-    
-    printf("mais what 2222 inodeEntry= %d\n", srcLeftInodeEntry.iNodeStat.st_size);
-    
-    /////on check si ca a save ! -------------------------------
-    getInodeEntry(srcLeftIno, &srcLeftInodeEntry);
-    blockNumLeft = srcLeftInodeEntry.Block[0];
-    char blockLeft3[BLOCK_SIZE];
-    ReadBlock(blockNumLeft, blockLeft3);
-    dirItems = (DirEntry *) blockLeft3;
-    i = 0;
-    nbFile = srcLeftInodeEntry.iNodeStat.st_size / sizeof (DirEntry);
-    printf("trouvé = %d\n", nbFile);
-    while (i < nbFile)
-      {
-	printf("!!!apres!!!!!!!!!!!!!!! = %s\n", dirItems[i].Filename);
-	i++;
-      }
-
-
-
-
-    
     return (0);
   }
 }
