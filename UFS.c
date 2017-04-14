@@ -391,11 +391,7 @@ int bd_create(const char *pFilename)
   if (iNodeNum != -2)
     return -2; // File already exist
 
-  // printf("INDOE NUM %d\n", iNodeNum);
-
   iNodeNum = getFreeInode();
-
-  // printf("INDOE NUM %d\n", iNodeNum);
 
   getInodeEntry(iNodeNum, &iNodeEntry);
   iNodeEntry.iNodeStat.st_ino = iNodeNum;
@@ -408,10 +404,6 @@ int bd_create(const char *pFilename)
 
   getInodeEntry(dirInode, &iNodeDir);
 
-  // printf("iNodeDir.iNodeStat.st_ino --> %d\n", iNodeDir.iNodeStat.st_ino);
-  // printf("iNodeEntry.iNodeStat.st_ino --> %d\n", iNodeEntry.iNodeStat.st_ino);
-
-  // addDirEntryInDir(&iNodeDir, fileInode, strFile);
   updateDir(&iNodeDir, iNodeEntry.iNodeStat.st_ino, 0, filename);
   updateInode(&iNodeEntry);
 
@@ -473,7 +465,6 @@ int bd_mkdir(const char *pDirName)   //#retfail
   //maj du dossier parent
   updateDir(&iNodeEntryLeft, freeInodeNum, 1, pathRight);
 
-  printf("not chez moi !\n");
   //Recupération du inode stuff de l'inode libre. (celle du nouveau dossier a ajouter)
   getInodeEntry(freeInodeNum, &freeInodeEntry);
   //on update avec le nouveau bloc de donnée
@@ -595,14 +586,14 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
     return (-3);
 
   //soit là soit dans le while.
-  if (offset > BLOCK_SIZE) ////////////////offset >= à la base
+  if (offset > BLOCK_SIZE)
     return (-4);
 
 
   //check si le fichier est vraiment vide
   if (fileInodeEntry.iNodeStat.st_blocks == 0 && fileInodeEntry.iNodeStat.st_size == 0)
     {
-      if ((freeBlock = getFreeBlock()) == -1) /////////////check que getFreeBlock renvoie -1
+      if ((freeBlock = getFreeBlock()) == -1)
 	return (0);
       fileInodeEntry.iNodeStat.st_blocks += 1;
       fileInodeEntry.Block[0] = freeBlock;
@@ -621,8 +612,6 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
 
   i = offset;
   while (ct <= numbytes && i < max &&  i <= BLOCK_SIZE)
-  //while (ct <= numbytes &&  i <= BLOCK_SIZE)
-    //while (i < (offset + numbytes) && i <= BLOCK_SIZE && cpt <= numbytes)
     {
       content[i] = buffer[ct];
       octs++;
@@ -739,13 +728,9 @@ int bd_unlink(const char *pFilename) {
   getInodeEntry(iNodeNumDir, &iNodeEntryDir);
   getInodeEntry(iNodeNumFile, &iNodeEntryFile);
 
-  // printf("iNodeNumDir %d\n", iNodeNumDir);
-  // printf("iNodeNumFile %d\n", iNodeNumFile);
-
   if ((iNodeEntryFile.iNodeStat.st_mode & G_IFREG) != G_IFREG)
     return -2;
 
-  //
   //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
   int nbFile = iNodeEntryDir.iNodeStat.st_size / sizeof(DirEntry);
 
@@ -758,17 +743,10 @@ int bd_unlink(const char *pFilename) {
   int i = 0;
   int shift = 0;
 
-  // printf("nbFile %d\n", nbFile);
-  // printf("dirname %s\n", dirname);
-  // printf("filename %s\n", filename);
-  // printf("dirItems[i].Filename %s\n", dirItems[i].Filename);
-
-  // printf("dirItems[i].Filename, filename %s, %s\n", dirItems[i].Filename, filename);
   while (i < nbFile) {
       //si c'est le dossier a virer
     if (strcmp(dirItems[i].Filename, filename) == 0 || shift == 1) {
       //on active le décallage
-      // printf("dirItems[i].Filename, filename %s, %s\n", dirItems[i].Filename, filename);
       shift = 1;
       dirItems[i] = dirItems[i + 1];
     }
@@ -776,14 +754,12 @@ int bd_unlink(const char *pFilename) {
   }
   //on update notre dirEntry
   WriteBlock(iNodeEntryDir.Block[0], blockData);
-  //
 
   iNodeEntryFile.iNodeStat.st_nlink--;
   updateInode(&iNodeEntryDir);
   updateInode(&iNodeEntryFile);
 
   // release block + inode
-  // printf("iNodeEntryFile.iNodeStat.st_nlink %d\n", iNodeEntryFile.iNodeStat.st_nlink);
   if (iNodeEntryFile.iNodeStat.st_nlink == 0) {
     ReleaseFreeBlock(iNodeEntryFile.Block[0]);
     releaseFreeInode(iNodeNumFile);
@@ -834,7 +810,7 @@ int bd_truncate(const char *pFilename, int NewSize) {
 }
 
 int bd_rmdir(const char *pFilename) {
-  char left[500];//////////un bete ptr ca ferait pas l'affaire ?
+  char left[500];
   char right[FILENAME_SIZE];
   ino iNodeLeft;
   ino iNodeRight;
@@ -847,20 +823,14 @@ int bd_rmdir(const char *pFilename) {
   GetFilenameFromPath(pFilename, right);
   GetDirFromPath(pFilename, left);
 
-  printf("path left = %s    path right = %s\n", left, right);
-
   //on recupere leur numéro d'inode
   iNodeLeft = getInodeNumberFromPath(ROOT_INODE, left);
   iNodeRight = getInodeNumberFromPath(ROOT_INODE, pFilename);
 
-  printf("inodeLeft = %d inodeRight = %d\n", iNodeLeft, iNodeRight);
-
   if (iNodeLeft == -1 || iNodeLeft == -2 || iNodeRight == -1 || iNodeRight == -2)
     {
-      printf("mais what\n");
       return (-1);
     }
-  printf("suite\n");
 
   //on recupere leurs infos
   getInodeEntry(iNodeLeft, &iNodeEntryLeft);
@@ -869,16 +839,12 @@ int bd_rmdir(const char *pFilename) {
   //on check si c'est un dossier qu'on nous demande de supprimer
   if (isFolder(iNodeEntryRight) != 1)
     {
-      printf("return du isFOlder sauvage\n");
-      return (-2);
+        return (-2);
     }
-
-  printf("iNodEntry right est un dossier !\n");
 
   //on exit si le dossier est pas vide
   if(NumberofDirEntry(iNodeEntryRight.iNodeStat.st_size) > 2)
     {
-      printf("le dossier est PAS vide !!\n");
       return (-3);
     }
 
@@ -892,7 +858,7 @@ int bd_rmdir(const char *pFilename) {
 
   //on diminue sa size à lui meme - 1
   iNodeEntryLeft.iNodeStat.st_size -= sizeof(DirEntry);
-  //on update...
+  //on update
   updateInode(&iNodeEntryLeft);
 
   //Contenu du dossier parent à transformer en dirEntry
@@ -901,10 +867,6 @@ int bd_rmdir(const char *pFilename) {
   DirEntry * dirItems = (DirEntry *) blockLeft;
   int i = 0;
   int shift = 0;
-
-  printf("nbFile %d\n", nbFile);
-  printf("filename %s\n", right);
-  printf("dirItems[i].Filename %s\n", dirItems[i].Filename);
 
   while (i < nbFile)
     {
@@ -1063,192 +1025,7 @@ int getFileINodeNumFromPath(const char *pPath) {
   return getInode(pPath, pName, ROOT_INODE);
 }
 
-/*
-int bd_rename(const char *pFilename, const char *pDestFilename) {
-
-  // Succès s'il s'agit du mêmem fichier dans le même répertoire.
-  if(strcmp(pFilename, pDestFilename) ==0) {
-    return 0;
-  }
-
-  int state = bd_hardlink(pFilename, pDestFilename);
-
-  if (state == 0) {
-    bd_unlink(pFilename);
-    return 0;
-  } else if (state == -2 || state == -1) {
-    return -1;
-  } else {
-    // Il s'agit d'un répertoire
-    char directorySource[BLOCK_SIZE];
-    char directoryDest[BLOCK_SIZE];
-    char filename[BLOCK_SIZE];
-    iNodeEntry sourceDirInode;
-    iNodeEntry destDirInode;
-    iNodeEntry filenameInode;
-
-
-    ino filenameIno = getFileINodeNumFromPath(pFilename);
-    if (filenameIno == -1) return -1;
-
-    if(GetDirFromPath(pFilename, directorySource) == 0) return -1;
-    if(GetDirFromPath(pDestFilename, directoryDest) == 0) return -1;
-    if(GetFilenameFromPath(pDestFilename, filename) == 0) return -1;
-
-    ino directorySourceIno = getFileINodeNumFromPath(directorySource);
-    if(directorySourceIno == -1) return -1;
-
-    ino destFilenameIno = getFileINodeNumFromPath(pDestFilename);
-    if (destFilenameIno != -1) return -1;
-
-    destFilenameIno = getFileINodeNumFromPath(directoryDest);
-    if(destFilenameIno == -1) return -1;
-
-    if(getINodeEntry(directorySourceIno, &sourceDirInode) != 0) return -1;
-    removeDirEntryInDir(&sourceDirInode, filenameIno);
-
-    // Décrémenter le nombre de link
-    if(getINodeEntry(directorySourceIno, &sourceDirInode) != 0) return -1;
-    sourceDirInode.iNodeStat.st_nlink--;
-    writeINodeOnDisk(&sourceDirInode);
-
-    if(getINodeEntry(destFilenameIno, &destDirInode) != 0) return -1;
-    addDirEntryInDir(&destDirInode,filenameIno,filename);
-
-    // Augmenter le  nb de link
-    if(getINodeEntry(destFilenameIno, &destDirInode) != 0) return -1;
-    destDirInode.iNodeStat.st_nlink++;
-    writeINodeOnDisk(&destDirInode);
-
-    if(getINodeEntry(filenameIno, &filenameInode) !=  0) return -1;
-    char block[BLOCK_SIZE];
-    UINT16 blockNum = filenameInode.Block[0];
-    ReadBlock(blockNum, block);
-    DirEntry * pDirEntry = (DirEntry *) block;
-    pDirEntry++;
-    pDirEntry->iNode = destFilenameIno;
-    WriteBlock(blockNum,block);
-
-    return 0;
-  }
-}
-*/
 //////////////////////////////////////////////////////
-
-/*
-int bd_rename(const char *pFilename, const char *pDestFilename)
-{
-  char srcLeft[BLOCK_SIZE]; //approuvé full
-  char destRight[BLOCK_SIZE]; //approuvé full
-  char destLeft[BLOCK_SIZE];//approuvé full
-  iNodeEntry srcLeftInodeEntry;//approuvé
-  iNodeEntry srcInodeEntry;
-  iNodeEntry destLeftInodeEntry;
-
-  if(strcmp(pFilename, pDestFilename) == 0)
-    {
-      return (0);
-    }
-
-  int ret = bd_hardlink(pFilename, pDestFilename);
-
-  if (ret == -1 || ret == -2)//fail
-    {
-      return (-1);
-    }
-  else if (ret == 0)//fichier. Donc on peut le virer
-    {
-      bd_unlink(pFilename);
-    }
-  else//c'est un dossier
-    {
-      GetDirFromPath(pFilename, srcLeft);
-      GetFilenameFromPath(pDestFilename, destRight);
-      GetDirFromPath(pDestFilename, destLeft);
-
-      ino srcLeftIno =  getInodeNumberFromPath(ROOT_INODE, srcLeft);
-      ino destLeftIno = getInodeNumberFromPath(ROOT_INODE, destLeft);
-
-
-      //inode number du fichier src
-      ino srcIno = getInodeNumberFromPath(ROOT_INODE, pFilename);
-      //inode number du dossier src
-      ino destIno = getInodeNumberFromPath(ROOT_INODE, pDestFilename);
-
-      if (srcLeftIno == -1 || srcLeftIno == -2 || srcIno == -1 || srcIno == -2 || destLeftIno == -1\
-	  || destLeftIno == -2)
-	{
-	  printf("bamm\n");
-	  return (-1);//check si c'est le bon return
-	}
-      getInodeEntry(srcLeftIno, &srcLeftInodeEntry);
-      getInodeEntry(destLeftIno, &destLeftInodeEntry);
-      getInodeEntry(srcIno, &srcInodeEntry);
-
-
-      printf("srcLeft = %s ino = %d inoEntry = %d\n", srcLeft, srcLeftIno, srcLeftInodeEntry.iNodeStat.st_ino);
-      printf("destLeft = %s ino = %d inoEntry = %d\n", destLeft, destLeftIno, destLeftInodeEntry.iNodeStat.st_ino);
-      printf("destRight = %s\n", destRight);
-
-
-      removeDirEntryInDir(&srcLeftInodeEntry, srcIno);
-
-      
-      //ici la fonction de merde a moi
-          
-      //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
-      int nbFile = srcLeftInodeEntry.iNodeStat.st_size / sizeof(DirEntry);
-
-      //on diminue sa size à lui meme - 1
-      srcLeftInodeEntry.iNodeStat.st_size -= sizeof(DirEntry);
-      //on update
-      updateInode(&srcLeftInodeEntry);
-
-      //Contenu du dossier parent à transformer en dirEntry
-      int blockNumLeft = srcLeftInodeEntry.Block[0];
-      char blockLeft[BLOCK_SIZE];
-      ReadBlock(blockNumLeft, blockLeft);
-      DirEntry * dirItems = (DirEntry *) blockLeft;
-      int i = 0;
-      int shift = 0;
-
-      while (i < nbFile)
-	{
-	  //si c'est le dossier a virer
-	  if (strcmp(dirItems[i].Filename, destRight) == 0 || shift == 1)
-	    {
-	      //on active le décallage
-	      shift = 1;
-	      dirItems[i] = dirItems[i + 1];
-	    }
-	  i++;
-	}
-      //on update notre dirEntry
-      WriteBlock(blockNumLeft, blockLeft);
-      
-      //fin ici ?
-
-      srcLeftInodeEntry.iNodeStat.st_nlink --;
-      updateInode(&srcLeftInodeEntry);
-
-      
-
-      updateDir(&destLeftInodeEntry, srcIno, 1, destRight);
-
-      int blockNum = srcInodeEntry.Block[0];
-      char block[BLOCK_SIZE];//////////////////////le remonter
-      
-      ReadBlock(blockNum, block);
-      DirEntry * pDirEntry = (DirEntry *) block;
-      pDirEntry++;
-      pDirEntry->iNode = destIno;
-      WriteBlock(blockNum, block);
-      return (0);
-    }
-  return (0);
-}
-*/
-
 
 int bd_rename(const char *pFilename, const char *pDestFilename) {
   DirEntry * finalDirEntry;
@@ -1497,8 +1274,6 @@ int bd_readlink(const char *pPathLien, char *pBuffer, int sizeBuffer) {
     return -1;
 
   getInodeEntry(iNodeNum, &iNodeEntry);
-
-  // printf("%d\n%d\n", iNodeEntry.iNodeStat.st_mode & G_IFLNK, G_IFLNK);
 
   if ((iNodeEntry.iNodeStat.st_mode & G_IFLNK) != G_IFLNK)
     return -1;
