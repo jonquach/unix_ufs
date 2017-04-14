@@ -106,7 +106,8 @@ void updateInode(iNodeEntry *ine);
 void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename);
 
 /*Retourne le numéro de block et position d'une inode*/
-int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition) {
+int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition)
+{
   if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
     return -1;
 
@@ -317,7 +318,7 @@ int getFreeBlock()
 }
 
 /*Relache une inode*/
-int releaseFreeInode(unsigned int inodeNumber)
+int releaseFreeInode(ino inodeNumber)
 {
   char blockData[BLOCK_SIZE];
 
@@ -330,7 +331,7 @@ int releaseFreeInode(unsigned int inodeNumber)
 }
 
 /*Relache un block*/
-int ReleaseFreeBlock(unsigned int BlockNum)
+int ReleaseFreeBlock(ino BlockNum)
 {
   char BlockFreeBitmap[BLOCK_SIZE];
 
@@ -342,7 +343,8 @@ int ReleaseFreeBlock(unsigned int BlockNum)
 }
 
 /*Cette fonction retourne le nombre de bloc de données li*/
-int bd_countfreeblocks(void) {
+int bd_countfreeblocks(void)
+{
   int nbFreeBlocks;
   char freeBlock[BLOCK_SIZE];
 
@@ -429,7 +431,8 @@ la fonction devra retourner -2. Si l’offset fait en sorte qu’il dépasse la 
 cette fonction devra simplement retourner 0, car vous ne pouvez pas lire aucun caractère.
 Notez que le nombre de blocs par fichier est limité à 1, ce qui devrait simplifier le code de lecture. 
 */
-int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
+int bd_read(const char *pFilename, char *buffer, int offset, int numbytes)
+{
   ino inodeNum;
   if ((inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename)) < 0)
     return (-1);
@@ -566,9 +569,6 @@ void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename)
   dirEntry->iNode = inodeNum;
   strcpy(dirEntry->Filename, filename);
 
-  //printf("direntry filename = %s\n", dirEntry->Filename);
-  //printf("direntry inode = %s\n", dirEntry->iNode);
-
   //et on le save
   WriteBlock(destDirInode->Block[0], dataBlock);
 }
@@ -619,8 +619,8 @@ N’oubliez-pas de modifier la taille du fichier
 st_size
 . 
 */
-int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes) {
-
+int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes)
+{
   iNodeEntry fileInodeEntry;
   int max = offset + numbytes;
   int i = 0;
@@ -710,7 +710,8 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
     * -3 if file pPathExisitant is a directory
 */
 
-int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien) {
+int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien)
+{
   char dirname[BLOCK_SIZE];
   char fhardlink[BLOCK_SIZE];
   iNodeEntry iNodeDir;
@@ -735,7 +736,7 @@ int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien) {
   getInodeEntry(iNodeNumExist, &iNodeEntryExist);
 
   if ((iNodeEntryExist.iNodeStat.st_mode & G_IFDIR) == G_IFDIR)
-    return -3;
+    return (-3);
 
   GetDirFromPath(pPathNouveauLien, dirname);
   iNodeNumDir = getInodeNumberFromPath(ROOT_INODE, dirname);
@@ -748,7 +749,7 @@ int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien) {
   iNodeEntryExist.iNodeStat.st_nlink++;
   updateInode(&iNodeEntryExist);
 
-  return 0;
+  return (0);
 }
 
 /*
@@ -767,7 +768,8 @@ int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien) {
     * -2 if pFilename is not a file
 */
 
-int bd_unlink(const char *pFilename) {
+int bd_unlink(const char *pFilename)
+{
   ino iNodeNumDir;
   ino iNodeNumFile;
   char dirname[BLOCK_SIZE];
@@ -782,14 +784,16 @@ int bd_unlink(const char *pFilename) {
   iNodeNumDir = getInodeNumberFromPath(ROOT_INODE, dirname);
   iNodeNumFile = getInodeNumberFromPath(ROOT_INODE, pFilename);
 
-  if (iNodeNumFile == -1) return -1; // pPathExistant directory does not exist
-  if (iNodeNumFile == -2) return -1; // pPathExistant file does not exist
+  if (iNodeNumFile == -1)
+    return (-1); // pPathExistant directory does not exist
+  if (iNodeNumFile == -2)
+    return (-1); // pPathExistant file does not exist
 
   getInodeEntry(iNodeNumDir, &iNodeEntryDir);
   getInodeEntry(iNodeNumFile, &iNodeEntryFile);
 
   if ((iNodeEntryFile.iNodeStat.st_mode & G_IFREG) != G_IFREG)
-    return -2;
+    return (-2);
 
   //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
   int nbFile = iNodeEntryDir.iNodeStat.st_size / sizeof(DirEntry);
@@ -825,7 +829,7 @@ int bd_unlink(const char *pFilename) {
     releaseFreeInode(iNodeNumFile);
   }
 
-  return 0;
+  return (0);
 }
 
 /*
@@ -842,7 +846,8 @@ int bd_unlink(const char *pFilename) {
     * -2 if pFilname is a directory
 
 */
-int bd_truncate(const char *pFilename, int NewSize) {
+int bd_truncate(const char *pFilename, int NewSize)
+{
   ino iNodeNum;
   iNodeEntry iNodeEntryFile;
 
@@ -879,7 +884,8 @@ est inexistant, retourner -1. Si c’est
 un fichier régulier, retournez -2. Autrement, retournez 0 
 pour indiquer le succès. 
 */
-int bd_rmdir(const char *pFilename) {
+int bd_rmdir(const char *pFilename)
+{
   char left[500];
   char right[FILENAME_SIZE];
   ino iNodeLeft;
@@ -971,7 +977,8 @@ Pour  vous  simplifier  la  vie,  vous  n’avez  pas  besoin  de gérer  le  ca
 pFilename est un répertoire, et la destination 
 pFilenameDest est un sous-répertoire de celui-ci. 
 */
-int bd_rename(const char *pFilename, const char *pDestFilename) {
+int bd_rename(const char *pFilename, const char *pDestFilename)
+{
   DirEntry * finalDirEntry;
   char srcLeft[BLOCK_SIZE];
   char srcRight[BLOCK_SIZE];
@@ -1104,7 +1111,8 @@ bd_readdir retourne comme valeur le nombre de fichiers et sous-répertoires cont
 pDirLocation (incluant . et ..). S’il y a une erreur, retourner -1. L’appelant sera en charge de désallouer 
 la mémoire via free. 
 */
-int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
+int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers)
+{
   ino iNodeNum;
   if ((iNodeNum  = getInodeNumberFromPath(ROOT_INODE, pDirLocation)) < 0)
     return (-1);
@@ -1143,7 +1151,8 @@ int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
     * -1 if pPathNouveauLien directory does not exist
     * -2 if pPathNouveauLien already exist
 */
-int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
+int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien)
+{
   ino iNodeNumNew;
   iNodeEntry iNodeEntryNewFile;
 
@@ -1172,7 +1181,8 @@ int bd_symlink(const char *pPathExistant, const char *pPathNouveauLien) {
   une fois montée dans Linux, de déréférencer les liens symboliques. Si le fichier pPathLien n’existe pas
   ou qu’il n’est pas un lien symbolique, retournez -1. Sinon, retournez le nombre de caractères lus.
 */
-int bd_readlink(const char *pPathLien, char *pBuffer, int sizeBuffer) {
+int bd_readlink(const char *pPathLien, char *pBuffer, int sizeBuffer)
+{
   int nb = 0;
   ino iNodeNum;
   iNodeEntry iNodeEntry;
