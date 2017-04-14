@@ -1278,39 +1278,51 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
   if (ret == -1 || ret == -2)//fail
     {
-      printf("A\n");
       return (-1);
-    } else if (ret == 0)//fichier. Donc on peut le virer
+    }
+  else if (ret == 0)//fichier. Donc on peut le virer
     {
       bd_unlink(pFilename);
     }
-  else {
-    // Il s'agit d'un répertoire
+  else {//c'est un repertoire
 
 
-    printf("B\n");
-    srcIno = getInodeNumberFromPath(ROOT_INODE, pFilename);
-    if (srcIno == -1) return -1;
-    printf("C\n");
-    if (GetDirFromPath(pFilename, srcLeft) == 0) return -1;
-    if (GetDirFromPath(pDestFilename, destLeft) == 0) return -1;
-    if (GetFilenameFromPath(pDestFilename, destRight) == 0) return -1;
-    printf("D\n");
-    srcLeftIno = getInodeNumberFromPath(ROOT_INODE, srcLeft);
-    if (srcLeftIno == -1) return -1;
-    printf("E\n");
+    //on découpe les morceaux dont on a besoin dans le path
+    if (GetDirFromPath(pDestFilename, destLeft) == 0)
+      return (-1);
+    
+    if (GetFilenameFromPath(pDestFilename, destRight) == 0)
+      return (-1);
+    
+    if (GetDirFromPath(pFilename, srcLeft) == 0)
+      return (-1);
+
+    //récupération des numéros d'inodes du dossier source parent et du fichier source et du dossier source final
+    if ((srcIno = getInodeNumberFromPath(ROOT_INODE, pFilename)) == -1)
+      return (-1);
+
+    if ((destIno = getInodeNumberFromPath(ROOT_INODE, destLeft)) == -1)
+      return (-1);    
+    
+    if ((srcLeftIno = getInodeNumberFromPath(ROOT_INODE, srcLeft)) == -1)
+      return (-1);
+
+
+    //Recupération du contenu des inodes
+    if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0)
+      return -1;
+    
+
     //printf("mais what = %s\n", pDestFilename);
     //destIno = getInodeNumberFromPath(ROOT_INODE, pDestFilename);
     //printf("return destIno = %d\n", destIno);
     //if (destIno != -1) return -1;
-    printf("F\n");
-    destIno = getInodeNumberFromPath(ROOT_INODE, destLeft);
-    if (destIno == -1) return -1;
-    printf("G\n");
-    if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0) return -1;
+
+
+
     //removeDirEntryInDir(&sourceDirInode, srcIno);
 
-    printf("H\n");
+
 
     ///////////////////////
     //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
@@ -1319,7 +1331,7 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     //on diminue sa size à lui meme - 1
     srcLeftInodeEntry.iNodeStat.st_size -= sizeof (DirEntry);
     //on update
-    updateInode(&srcLeftInodeEntry);
+    //updateInode(&srcLeftInodeEntry);
 
     //Contenu du dossier parent à transformer en dirEntry
     int blockNumLeft = srcLeftInodeEntry.Block[0];
@@ -1345,21 +1357,21 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
 
     // Décrémenter le nombre de link
-    if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0) return -1;
+    //if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0) return -1;
     srcLeftInodeEntry.iNodeStat.st_nlink--;
     updateInode(&srcLeftInodeEntry);
-    printf("I\n");
+
     if (getInodeEntry(destIno, &destLeftInodeEntry) != 0) return -1;
     //updateDir(&destLeftInodeEntry, srcIno, destRight);
     updateDir(&destLeftInodeEntry, srcIno, 1, destRight);
-    printf("J\n");
+
     // Augmenter le  nb de link
     if (getInodeEntry(destIno, &destLeftInodeEntry) != 0) return -1;
     destLeftInodeEntry.iNodeStat.st_nlink++;
     updateInode(&destLeftInodeEntry);
-    printf("K\n");
+
     if (getInodeEntry(srcIno, &srcInodeEntry) != 0) return -1;
-    printf("L\n");
+
     char block[BLOCK_SIZE];
     UINT16 blockNum = srcInodeEntry.Block[0];
     ReadBlock(blockNum, block);
@@ -1368,7 +1380,6 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     pDirEntry->iNode = destIno;
     WriteBlock(blockNum, block);
 
-    printf("nqiue ta mere la pute\n");
 
     return 0;
   }
