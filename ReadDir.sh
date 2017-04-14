@@ -8,6 +8,7 @@ echo
 echo "--------------------------------------------------------------------"
 echo "                     montrer le contenu du disque"
 echo "--------------------------------------------------------------------"
+./ufs ls /b.txt
 ./ufs ls /
 ./ufs ls /doc
 ./ufs ls /doc/tmp

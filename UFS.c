@@ -1112,6 +1112,9 @@ int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
 
   getInodeEntry(iNodeNum, &iNodeEntry);
 
+  if (isFolder(iNodeEntry) != 1)
+    return (-1);
+  
   ReadBlock(iNodeEntry.Block[0], dataBlock);
 
   *ppListeFichiers = (DirEntry*) malloc(iNodeEntry.iNodeStat.st_size);
