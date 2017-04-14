@@ -1259,9 +1259,11 @@ int bd_rename(const char *pFilename, const char *pDestFilename)
 
 
 int bd_rename(const char *pFilename, const char *pDestFilename) {
+  DirEntry * finalDirEntry;
   char srcLeft[BLOCK_SIZE];
   char destLeft[BLOCK_SIZE];
   char destRight[BLOCK_SIZE];
+  char blockData[BLOCK_SIZE];
   iNodeEntry srcLeftInodeEntry;
   iNodeEntry destLeftInodeEntry;
   iNodeEntry srcInodeEntry;
@@ -1269,6 +1271,7 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
   ino srcLeftIno;
   ino destIno;
   int ret;
+  int blockNum;
 
   if (strcmp(pFilename, pDestFilename) == 0) {
     return (0);
@@ -1313,7 +1316,10 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
       return (-1);
     if (getInodeEntry(destIno, &destLeftInodeEntry) != 0)
       return (-1);
-    
+    if (getInodeEntry(srcIno, &srcInodeEntry) != 0)
+      return (-1);
+    //récupération du numéro de bloc src pour swapper plus bas
+    blockNum = srcInodeEntry.Block[0];
 
     //printf("mais what = %s\n", pDestFilename);
     //destIno = getInodeNumberFromPath(ROOT_INODE, pDestFilename);
@@ -1370,19 +1376,15 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     //if (getInodeEntry(destIno, &destLeftInodeEntry) != 0) return -1;
     //destLeftInodeEntry.iNodeStat.st_nlink++;
     //updateInode(&destLeftInodeEntry);
-
-    if (getInodeEntry(srcIno, &srcInodeEntry) != 0) return -1;
-
-    char block[BLOCK_SIZE];
-    UINT16 blockNum = srcInodeEntry.Block[0];
-    ReadBlock(blockNum, block);
-    DirEntry * pDirEntry = (DirEntry *) block;
-    pDirEntry++;
-    pDirEntry->iNode = destIno;
-    WriteBlock(blockNum, block);
-
-
-    return 0;
+    
+    ReadBlock(blockNum, blockData);
+    finalDirEntry = (DirEntry *) blockData;
+    //on se déplace dans la nouvelle zone
+    finalDirEntry++;
+    //on fait le swap
+    finalDirEntry->iNode = destIno;
+    WriteBlock(blockNum, blockData);
+    return (0);
   }
 }
 
