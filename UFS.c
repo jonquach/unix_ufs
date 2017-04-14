@@ -1261,6 +1261,7 @@ int bd_rename(const char *pFilename, const char *pDestFilename)
 int bd_rename(const char *pFilename, const char *pDestFilename) {
   DirEntry * finalDirEntry;
   char srcLeft[BLOCK_SIZE];
+  char srcRight[BLOCK_SIZE];
   char destLeft[BLOCK_SIZE];
   char destRight[BLOCK_SIZE];
   char blockData[BLOCK_SIZE];
@@ -1293,11 +1294,14 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     //on découpe les morceaux dont on a besoin dans le path
     if (GetDirFromPath(pDestFilename, destLeft) == 0)
       return (-1);
-    
+
     if (GetFilenameFromPath(pDestFilename, destRight) == 0)
       return (-1);
-    
+
     if (GetDirFromPath(pFilename, srcLeft) == 0)
+      return (-1);
+
+    if (GetFilenameFromPath(pFilename, srcRight) == 0)
       return (-1);
 
     //récupération des numéros d'inodes du dossier source parent et du fichier source et du dossier source final
@@ -1336,8 +1340,13 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
     int nbFile = srcLeftInodeEntry.iNodeStat.st_size / sizeof (DirEntry);
 
+    printf("nFile = %d\n", nbFile);
+
+    
     //on diminue sa size à lui meme - 1
-    srcLeftInodeEntry.iNodeStat.st_size -= sizeof (DirEntry);
+    srcLeftInodeEntry.iNodeStat.st_size -= BLOCK_SIZE / sizeof(DirEntry);
+    //srcLeftInodeEntry.iNodeStat.st_size -= sizeof(DirEntry);
+    
     //on update
     //updateInode(&srcLeftInodeEntry);
 
@@ -1349,24 +1358,31 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     int i = 0;
     int shift = 0;
 
-    while (i < nbFile) {
-      //si c'est le dossier a virer
-      if (strcmp(dirItems[i].Filename, destRight) == 0 || shift == 1) {
-	//on active le décallage
-	shift = 1;
-	dirItems[i] = dirItems[i + 1];
+    while (i < nbFile)
+      {
+	printf("current = %s - %s\n", dirItems[i].Filename, srcRight);
+	//si c'est le dossier a virer
+	if (strcmp(dirItems[i].Filename, srcRight) == 0 || shift == 1) {
+	  //on active le décallage
+	  shift = 1;
+	  dirItems[i] = dirItems[i + 1];
+	  printf("final = %s\n", dirItems[i].Filename);
+	}
+	i++;
       }
-      i++;
-    }
     //on update notre dirEntry
     WriteBlock(blockNumLeft, blockLeft);
     ///////////////////////////////////////
+
+    printf("Histoire de voir = %d\n", srcLeftInodeEntry.iNodeStat.st_size / sizeof (DirEntry));
 
 
 
     // Décrémenter le nombre de link
     //if (getInodeEntry(srcLeftIno, &srcLeftInodeEntry) != 0) return -1;
     srcLeftInodeEntry.iNodeStat.st_nlink--;
+
+    //on update le dossier parent src
     updateInode(&srcLeftInodeEntry);
 
     printf("ca me semble parfait = [%s] [%s]\n", srcLeft, destLeft);
