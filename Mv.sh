@@ -25,6 +25,10 @@ echo -e "\nOn vérifie que le sous-réperoire tmpmv contient encore subtmp et ne
 ./ufs ls /Bonjour/tmpmv
 echo -e "\nOn vérifie que le nombre de lien vers ce même répertoire n'augmente pas si on répète l'opération:"
 ./ufs rename /Bonjour/tmpmv /Bonjour/tmpmv2
+
+echo -e "la question ->"
+./ufs ls /Bonjour
+
 ./ufs rename /Bonjour/tmpmv2 /Bonjour/tmpmv3
 ./ufs ls /Bonjour
 
@@ -37,7 +41,7 @@ echo -e "affichage de bonjour et doc"
 
 echo -e "########################################################"
 
-cho 
+echo 
 echo
 echo "--------------------------------------------------------------------"
 echo "          Tester la fonction rename sur fichier ordinaire"
