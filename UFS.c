@@ -120,12 +120,7 @@ int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition)
     //on fait la difference pour partir de 0 dans le bloc 2
     *iNodePosition = NUM_INODE_PER_BLOCK - iNodeNum;
   }
-
-  printf("iNodeNum = %d\n", iNodeNum);
-  printf("iNodeBlockNum = %d\n", *iNodeBlockNum);
-  printf("iNodePosition = %d\n", *iNodePosition);
-
-  return 0;
+  return (0);
 }
 
 /*Recupere le inodeEntry en utilisant un numéro d'inode*/
@@ -138,7 +133,7 @@ int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry)
 
 
   if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
-    return -1;
+    return (-1);
 
   if (iNodeNum >= 0 && iNodeNum <= 15)
     {
@@ -410,8 +405,10 @@ int bd_create(const char *pFilename)
   return 0;
 }
 
-int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) { //#retfail
-  ino inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename);
+int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
+  ino inodeNum;
+  if ((inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename)) < 0)
+    return (inodeNum);
   iNodeEntry iNodeEntry;
   char fileData[BLOCK_SIZE];
   int ctRead = 0;
@@ -1195,7 +1192,9 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 
 
 int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) { //#retfail
-  ino iNodeNum = getInodeNumberFromPath(ROOT_INODE, pDirLocation);
+  ino iNodeNum;
+  if ((iNodeNum  = getInodeNumberFromPath(ROOT_INODE, pDirLocation)) < 0)
+    return iNodeNum;
   iNodeEntry iNodeEntry;
   char dataBlock[BLOCK_SIZE];
 
