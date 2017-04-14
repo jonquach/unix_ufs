@@ -14,7 +14,6 @@ echo "--------------------------------------------------------------------"
 ./ufs rename /doc/tmp /Bonjour/tmpmv
 
 
-echo -e "vielle pute"
 ./ufs ls /Bonjour
 ./ufs ls /doc
 
@@ -37,21 +36,3 @@ echo -e "affichage de bonjour et doc"
 
 
 echo -e "########################################################"
-
-echo 
-echo 
-echo "--------------------------------------------------------------------"
-echo "            Tester la fonction rename sur répertoire"
-echo "--------------------------------------------------------------------"
-./ufs ls /Bonjour
-./ufs ls /doc
-./ufs rename /doc/tmp /Bonjour/tmpmv
-echo -e "\nOn vérifie que le nombre de lien pour /Bonjour augmente de 1 et qu'il diminue de 1 pour /doc:"
-./ufs ls /
-echo -e "\nOn vérifie que le sous-réperoire tmpmv contient encore subtmp et new.txt:"
-./ufs ls /Bonjour/tmpmv
-echo -e "\nOn vérifie que le nombre de lien vers ce même répertoire n'augmente pas si on répète l'opération:"
-./ufs rename /Bonjour/tmpmv /Bonjour/tmpmv2
-./ufs rename /Bonjour/tmpmv2 /Bonjour/tmpmv3
-./ufs ls /Bonjour
-

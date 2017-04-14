@@ -1369,9 +1369,11 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
     srcLeftInodeEntry.iNodeStat.st_nlink--;
     updateInode(&srcLeftInodeEntry);
 
-    
-    updateDir(&destLeftInodeEntry, srcIno, 1, destRight);
-
+    printf("ca me semble parfait = [%s] [%s]\n", srcLeft, destLeft);
+    if (strcmp(srcLeft, destLeft) == 0)
+      updateDir(&destLeftInodeEntry, srcIno, 0, destRight);
+    else
+      updateDir(&destLeftInodeEntry, srcIno, 1, destRight);
     // Augmenter le  nb de link
     //if (getInodeEntry(destIno, &destLeftInodeEntry) != 0) return -1;
     //destLeftInodeEntry.iNodeStat.st_nlink++;
