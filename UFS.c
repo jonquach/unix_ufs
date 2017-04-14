@@ -432,14 +432,15 @@ Notez que le nombre de blocs par fichier est limité à 1, ce qui devrait simpli
 int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   ino inodeNum;
   if ((inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename)) < 0)
-    return (inodeNum);
+    return (-1);
   iNodeEntry iNodeEntry;
   char fileData[BLOCK_SIZE];
   int ctRead = 0;
   int i = offset;
 
   getInodeEntry(inodeNum, &iNodeEntry);
-
+  if (isFolder(iNodeEntry) == 1)
+    return (-2);
   ReadBlock(iNodeEntry.Block[0], fileData);
 
   while (i < (offset + numbytes) && i < iNodeEntry.iNodeStat.st_size)
@@ -1106,7 +1107,7 @@ la mémoire via free.
 int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
   ino iNodeNum;
   if ((iNodeNum  = getInodeNumberFromPath(ROOT_INODE, pDirLocation)) < 0)
-    return iNodeNum;
+    return (-1);
   iNodeEntry iNodeEntry;
   char dataBlock[BLOCK_SIZE];
 
