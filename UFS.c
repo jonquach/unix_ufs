@@ -94,6 +94,7 @@ void printiNode(iNodeEntry iNode) {
 /* ----------------------------------------------------------------------------------------
 					            à vous de jouer, maintenant!
    ---------------------------------------------------------------------------------------- */
+
 int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition);
 int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry);
 int isFolder(iNodeEntry iNodeStuff);
@@ -101,9 +102,12 @@ int getLeftPart(const char *path, char **leftPart);
 ino getInodeNumberFromPath(ino inode, const char *pathToFind);
 int findFirstFreeInode(char freeInodes[BLOCK_SIZE]);
 int getFreeInode();
+int findFirstFreeBlock(char freeInodes[BLOCK_SIZE]);
 int getFreeBlock();
-void updateInode(iNodeEntry *ine);
+int releaseFreeInode(ino inodeNumber);
+int ReleaseFreeBlock(ino BlockNum);
 void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename);
+void updateInode(iNodeEntry *ine);
 
 /*Retourne le numéro de block et position d'une inode*/
 int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition)
