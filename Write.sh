@@ -76,14 +76,20 @@ echo "--------------------------------------------------------------------"
 
 
 
-#echo
-#echo
-#echo "--------------------------------------------------------------------"
-#echo "  test d'ecriture qui doit provoquer la saisie de 2 nouveaux blocs"
-#echo "--------------------------------------------------------------------"
-#./ufs write /b.txt "abcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234$
-#./ufs stat /b.txt
-#let "N_FREEBLOCK=$N_FREEBLOCK-2"
-#echo -e "\nDoit afficher $N_FREEBLOCK blocs de libre:"
-#./ufs blockfree  
+echo
+echo
+echo "--------------------------------------------------------------------"
+echo "  test d'ecriture qui doit provoquer la saisie de 2 nouveaux blocs"
+echo "--------------------------------------------------------------------"
+./ufs write /b.txt "abcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJabcdefghij1234567890ABCDEFGHIJ" 0 
+./ufs stat /b.txt
+let "N_FREEBLOCK=$N_FREEBLOCK-2"
+echo -e "\nDoit afficher $N_FREEBLOCK blocs de libre:"
+./ufs blockfree  
 
+echo
+echo
+echo "-----------------------------------------------------------------------"
+echo "  test de lecture dans le fichier plus gros, qui chevauche deux blocs"
+echo "-----------------------------------------------------------------------"
+./ufs read /b.txt 500 30

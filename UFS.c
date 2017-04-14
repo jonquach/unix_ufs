@@ -317,7 +317,7 @@ int getFreeBlock()
 }
 
 /*Relache une inode*/
-int releaseFreeInode(unsigned int inodeNumber)
+int releaseFreeInode(ino inodeNumber)
 {
   char blockData[BLOCK_SIZE];
 
@@ -330,7 +330,7 @@ int releaseFreeInode(unsigned int inodeNumber)
 }
 
 /*Relache un block*/
-int ReleaseFreeBlock(unsigned int BlockNum)
+int ReleaseFreeBlock(ino BlockNum)
 {
   char BlockFreeBitmap[BLOCK_SIZE];
 
@@ -859,11 +859,12 @@ int bd_truncate(const char *pFilename, int NewSize) {
     return (iNodeEntryFile.iNodeStat.st_size);
   }
 
+  if (NewSize == 0) {
+    ReleaseFreeBlock(iNodeEntryFile.Block[0]);
+  }
+
   iNodeEntryFile.iNodeStat.st_size = NewSize;
   updateInode(&iNodeEntryFile);
-
-  if (NewSize == 0)
-    ReleaseFreeBlock(iNodeEntryFile.Block[0]);
 
   return (NewSize);
 }
