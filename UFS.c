@@ -105,6 +105,7 @@ int getFreeBlock();
 void updateInode(iNodeEntry *ine);
 void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename);
 
+/*Retourne le numéro de block et position d'une inode*/
 int getInodeBlockNumAndPos(ino iNodeNum, int *iNodeBlockNum, int *iNodePosition) {
   if (iNodeNum > N_INODE_ON_DISK || iNodeNum < 0)
     return -1;
@@ -154,6 +155,7 @@ int getInodeEntry(ino iNodeNum, iNodeEntry *inodeEntry)
   return 0;
 }
 
+/*Verifie si l'inode est un dossier*/
 int isFolder(iNodeEntry iNodeStuff)
 {
   if (iNodeStuff.iNodeStat.st_mode & G_IFDIR)
@@ -162,6 +164,7 @@ int isFolder(iNodeEntry iNodeStuff)
     return 0;
 }
 
+/*Retourne la partie gauche de slash en slash du path*/ 
 int getLeftPart(const char *path, char **leftPart)
 {
   if (strlen(path) == 0)
@@ -185,7 +188,7 @@ int getLeftPart(const char *path, char **leftPart)
   while (path[0] != '\0' && path[0] != '/')
     {
       newString[i] = path[0];
-      path++;//on incremente le pointeur du coup on bouf la chaine petit a petit (et apres avoir fait la copie du char dans newString)
+      path++;//on incremente le pointeur du coup on découpe la chaine petit a petit (et apres avoir fait la copie du char dans newString)
       i++;
     }
   newString[i] = '\0';
@@ -193,6 +196,7 @@ int getLeftPart(const char *path, char **leftPart)
   return (i + 1);
 }
 
+/*Retourne le numéro d'inode d'un fichier par son path*/
 //au debut ROOT_INODE
 ino getInodeNumberFromPath(ino inode, const char *pathToFind)
 {
@@ -243,6 +247,7 @@ ino getInodeNumberFromPath(ino inode, const char *pathToFind)
     }
 }
 
+/*Retourne la 1ere inode libre trouvée*/
 int findFirstFreeInode(char freeInodes[BLOCK_SIZE])
 {
   int curInode = ROOT_INODE;
@@ -252,11 +257,12 @@ int findFirstFreeInode(char freeInodes[BLOCK_SIZE])
   }
 
   if (curInode >= N_INODE_ON_DISK) {
-    return -1;
+    return (-1);
   }
   return curInode;
 }
 
+/*Saisie la 1ere inode libre trouvée*/
 int getFreeInode()
 {
   char freeInodesBlock[BLOCK_SIZE];
@@ -274,6 +280,7 @@ int getFreeInode()
   return -1;
 }
 
+/*Retourne le 1er block libre*/
 int findFirstFreeBlock(char freeInodes[BLOCK_SIZE])
 {
   int curInode = ROOT_INODE;
@@ -288,6 +295,7 @@ int findFirstFreeBlock(char freeInodes[BLOCK_SIZE])
   return curInode;
 }
 
+/*Saisie le 1er block libre trouvé*/
 int getFreeBlock()
 {
   char dataBlock[BLOCK_SIZE];
@@ -308,6 +316,7 @@ int getFreeBlock()
   return -1;
 }
 
+/*Relache une inode*/
 int releaseFreeInode(unsigned int inodeNumber)
 {
   char blockData[BLOCK_SIZE];
@@ -320,7 +329,7 @@ int releaseFreeInode(unsigned int inodeNumber)
   return (1);
 }
 
-
+/*Relache un block*/
 int ReleaseFreeBlock(unsigned int BlockNum)
 {
   char BlockFreeBitmap[BLOCK_SIZE];
@@ -332,6 +341,7 @@ int ReleaseFreeBlock(unsigned int BlockNum)
   return (1);
 }
 
+/*Cette fonction retourne le nombre de bloc de données li*/
 int bd_countfreeblocks(void) {
   int nbFreeBlocks;
   char freeBlock[BLOCK_SIZE];
@@ -346,6 +356,10 @@ int bd_countfreeblocks(void) {
   return nbFreeBlocks;
 }
 
+/*Cette  fonction  copie  les  métadonnées gstat du fichier pFilename vers  le  pointeur pStat.
+Les métadonnées du fichier pFilename doivent demeurer inchangées.
+La fonction retourne -1 si le fichier pFilename est inexistant. Autrement, la fonction retourne 0.
+*/
 int bd_stat(const char *pFilename, gstat *pStat)
 {
   ino iNodeNum;
@@ -405,6 +419,16 @@ int bd_create(const char *pFilename)
   return 0;
 }
 
+/*
+Cette fonction va lire numbytes octets dans le fichier pFilename, à partir de la position offset,
+et les copier dans buffer. La valeur retournée par la fonction est le nombre d’octets lus.
+Par exemple, si le fichier fait 100 octets et que vous faites une lecture pour offset=10 et 
+numbytes=200, la valeur retournée par bd_read sera 90. Si le fichier pFilename est inexistant,
+la fonction devra retourner -1. Si le fichier pFilename est un répertoire,
+la fonction devra retourner -2. Si l’offset fait en sorte qu’il dépasse la taille du fichier,
+cette fonction devra simplement retourner 0, car vous ne pouvez pas lire aucun caractère.
+Notez que le nombre de blocs par fichier est limité à 1, ce qui devrait simplifier le code de lecture. 
+*/
 int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   ino inodeNum;
   if ((inodeNum = getInodeNumberFromPath(ROOT_INODE, pFilename)) < 0)
@@ -429,6 +453,16 @@ int bd_read(const char *pFilename, char *buffer, int offset, int numbytes) {
   return ctRead;
 }
 
+/*
+Cette fonction doit créer le répertoire pDirName. Si le chemin d’accès à pDirName est inexistant, ne faites 
+rien et retournez -1, par exemple si on demande de créer le répertoire /doc/tmp/totoet que le répertoire 
+/doc/tmp n’existe  pas.  Assurez-vous  que  l’i-node correspondant  au  répertoire  est  marqué  comme 
+répertoire (bit G_IFDIR de st_mode à 1). Si le répertoire pDirName existe déjà, retournez avec -2. 
+Pour les permissions rxw, simplement les mettre toutes à 1, en faisant st_mode|=G_IRWXU|G_IRWXG. 
+Assurez-vous aussi que le répertoire contiennent les deux répertoires suivants : « . » et « .. ».
+N’oubliez-pas d’incrémenter st_nlink pour le répertoire actuel « . » et parent « .. ».
+En cas de succès, retournez 0. 
+*/
 int bd_mkdir(const char *pDirName)
 {
   char pathRight[500];
@@ -504,7 +538,7 @@ int bd_mkdir(const char *pDirName)
   return (0);
 }
 
-
+/*Ajoute un dossier et met à jours les informations*/
 void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename)
 {
   char dataBlock[BLOCK_SIZE];
@@ -538,6 +572,7 @@ void updateDir(iNodeEntry * destDirInode, ino inodeNum, int inc, char *filename)
   WriteBlock(destDirInode->Block[0], dataBlock);
 }
 
+/*Met à jour l'inode sur le disque*/
 void updateInode(iNodeEntry *ine)
 {
   char blockData[BLOCK_SIZE];
@@ -561,6 +596,28 @@ void updateInode(iNodeEntry *ine)
   WriteBlock(iNodeBlockNum, blockData);
 }
 
+/*
+Cette fonction va écrire numbytes octets du buffer dans le fichier 
+pFilename, à partir de la position offset(0 indique le début du fichier).
+La valeur retournée par la fonction est le nombre d’octets écrits.  
+Vous devez vérifier que : 
+Le fichier pFilename existe. Dans le cas contraire, cette fonction devra 
+retourner -1. 
+Le fichier pFilename n’est pas un répertoire.  Dans le cas contraire, cett
+e fonction devra retourner -2. 
+L’offset doit être plus petit ou égal à la taille du fichier. Dans le cas contraire,
+cette fonction devra retourner -3. Par contre, si l’offset est plus grand ou égal à
+la taille maximale supportée par ce système de fichier, retournez la valeur -4. 
+La taille finale ne doit pas dépasser la taille maximale
+d’un fichier sur ce mini-UFS, qui est dicté par le nombre de bloc d’adressage direct 
+N_BLOCK_PER_INODE. et la taille d’un bloc. Vous devez 
+quand même écrire le plus possible dans le fichier, jusqu’
+à atteindre cette taille limite. La fonction 
+retournera ce nombre d’octet écrit. 
+N’oubliez-pas de modifier la taille du fichier 
+st_size
+. 
+*/
 int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes) {
 
   iNodeEntry fileInodeEntry;
@@ -623,7 +680,7 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
 
   WriteBlock(fileInodeEntry.Block[0] , content);
 
-  if (octs + offset > fileInodeEntry.iNodeStat.st_size) //////////JJJJJJJAAAIIIIIIIII PPPPPPPAAAAAASSSSSSS   CCCCCCOOOOOOOMMMMMMMMMPPPPPPPPRRRRRRRIIIIIIIIISSSSSSSSS
+  if (octs + offset > fileInodeEntry.iNodeStat.st_size)
     {
       fileInodeEntry.iNodeStat.st_size = octs + offset;
     }
@@ -811,6 +868,16 @@ int bd_truncate(const char *pFilename, int NewSize) {
   return (NewSize);
 }
 
+/*
+Cette  fonction  sert  à  effacer  un  répertoire  vide,  i.e
+.  s’il  ne  contient  pas  d’autre  chose  que  les  deux 
+répertoires « . » et « .. ». Si le répertoire n’est
+ pas vide, ne faites rien et retournez -3. N’oubliez-pas de 
+décrémenter st_nlink pour le répertoire parent « .. ». Si le répertoire 
+est inexistant, retourner -1. Si c’est 
+un fichier régulier, retournez -2. Autrement, retournez 0 
+pour indiquer le succès. 
+*/
 int bd_rmdir(const char *pFilename) {
   char left[500];
   char right[FILENAME_SIZE];
@@ -853,8 +920,6 @@ int bd_rmdir(const char *pFilename) {
   //maintenant qu'on est bon on diminune le compteur
   iNodeEntryLeft.iNodeStat.st_nlink--;
 
-  //-------------------------------------------------------------------------------------------------------Johnatan - removeDirEntryInDir pour tes beaux yeux
-
   //on save combien y a de fichiers dans le dossier parent avant de lui faire diminuer sa size
   int nbFile = iNodeEntryLeft.iNodeStat.st_size / sizeof(DirEntry);
 
@@ -884,7 +949,6 @@ int bd_rmdir(const char *pFilename) {
   //on update notre dirEntry
   WriteBlock(blockNumLeft, blockLeft);
 
-  //-----------------------------------------------------------------------------removeDirEntryInDir FIN
   updateInode(&iNodeEntryLeft);
   releaseFreeInode(iNodeRight);
   ReleaseFreeBlock(iNodeEntryRight.Block[0]);
@@ -892,6 +956,20 @@ int bd_rmdir(const char *pFilename) {
   return (0);
 }
 
+/*
+Cette fonction sert à déplacer ou renommer un fichier ou répertoire  pFilename.  Le nom et le 
+répertoire destination est le nom complet pFilenameDest. Par exemple, bd_rename("/tmp/a.txt","/doc/c.txt")
+va  déplacer  le  fichier  de /tmp vers /doc,  et  aussi renommer le fichier de a.txt à c.txt.
+N’oubliez-pas de retirer le fichier (ou répertoire) du répertoire 
+initial. Aussi, faites attention à ne pas faire d’erreur si vous manipuler le compteur de lien. Si le fichier 
+pFilename est un répertoire, n’oubliez-pas de mettre à jour le numéro d’i-node du répertoire parent « .. ». 
+En cas de succès, retournez 0. Attention! Il se peut que le répertoire soit le même pour pFilename
+et pFilenameDest. Votre programme doit pouvoir supporter cela, comme dans le cas bd_hardlink. Si 
+le fichier pFilename est inexistant, ou si le répertoire de pFilenameDestest inexistant, retournez -1. 
+Pour  vous  simplifier  la  vie,  vous  n’avez  pas  besoin  de gérer  le  cas  invalide  où  le  fichier  déplacé 
+pFilename est un répertoire, et la destination 
+pFilenameDest est un sous-répertoire de celui-ci. 
+*/
 int bd_rename(const char *pFilename, const char *pDestFilename) {
   DirEntry * finalDirEntry;
   char srcLeft[BLOCK_SIZE];
@@ -1014,7 +1092,17 @@ int bd_rename(const char *pFilename, const char *pDestFilename) {
 }
 
 
-
+/*
+Cette  fonction  est  utilisée  pour  permettre  la  lecture du  contenu  du  répertoire 
+pDirLocation.  Si  le répertoire pDirLocation est valide, il faut allouer un tableau de 
+DirEntry (via malloc) de la bonne taille et recopier le contenu du fichier répertoire dans 
+ce tableau. Ce tableau est retourné à l’appelant via le double pointeur ppListeFichiers.
+Par exemple, vous pouvez faire : (*ppListeFichiers) = (DirEntry*)malloc(taille_de_données);
+et  traitez (*ppListeFichiers) comme  un  pointeur  sur  un  tableau  de DirEntry.  La  fonction 
+bd_readdir retourne comme valeur le nombre de fichiers et sous-répertoires contenus dans ce répertoire 
+pDirLocation (incluant . et ..). S’il y a une erreur, retourner -1. L’appelant sera en charge de désallouer 
+la mémoire via free. 
+*/
 int bd_readdir(const char *pDirLocation, DirEntry **ppListeFichiers) {
   ino iNodeNum;
   if ((iNodeNum  = getInodeNumberFromPath(ROOT_INODE, pDirLocation)) < 0)
