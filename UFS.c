@@ -749,7 +749,7 @@ int bd_hardlink(const char *pPathExistant, const char *pPathNouveauLien)
 
   GetFilenameFromPath(pPathNouveauLien, fhardlink);
 
-  updateDir(&iNodeDir, iNodeEntryExist.iNodeStat.st_ino, 1, fhardlink);
+  updateDir(&iNodeDir, iNodeEntryExist.iNodeStat.st_ino, 0, fhardlink);
   iNodeEntryExist.iNodeStat.st_nlink++;
   updateInode(&iNodeEntryExist);
 
