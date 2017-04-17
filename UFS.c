@@ -1011,9 +1011,10 @@ int bd_rename(const char *pFilename, const char *pDestFilename)
     }
   else if (ret == 0)//fichier. Donc on peut le virer
     {
-      bd_unlink(pFilename);
+      return(bd_unlink(pFilename));
     }
-  else {//c'est un repertoire
+  else//c'est un repertoire
+  {
 
 
     //on découpe les morceaux dont on a besoin dans le path
