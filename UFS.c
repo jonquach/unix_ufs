@@ -665,7 +665,6 @@ int bd_write(const char *pFilename, const char *buffer, int offset, int numbytes
   
   
   ReadBlock(fileInodeEntry.Block[0], dataBlock);
-  
 
   //on lit le contenu actuel du fichier
   while (i < fileInodeEntry.iNodeStat.st_size)
@@ -965,8 +964,10 @@ int bd_rmdir(const char *pFilename)
   WriteBlock(blockNumLeft, blockLeft);
 
   updateInode(&iNodeEntryLeft);
+  if (iNodeEntryRight.iNodeStat.st_blocks != 0) {
+    ReleaseFreeBlock(iNodeEntryRight.Block[0]);
+  }
   releaseFreeInode(iNodeRight);
-  ReleaseFreeBlock(iNodeEntryRight.Block[0]);
 
   return (0);
 }
