@@ -829,7 +829,9 @@ int bd_unlink(const char *pFilename)
 
   // release block + inode
   if (iNodeEntryFile.iNodeStat.st_nlink == 0) {
-    ReleaseFreeBlock(iNodeEntryFile.Block[0]);
+    if (iNodeEntryFile.iNodeStat.st_blocks != 0) {
+      ReleaseFreeBlock(iNodeEntryFile.Block[0]);
+    }
     releaseFreeInode(iNodeNumFile);
   }
 
