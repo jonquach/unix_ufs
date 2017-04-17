@@ -518,7 +518,7 @@ int bd_mkdir(const char *pDirName)
   //les flags donné dans le sujet
   freeInodeEntry.iNodeStat.st_mode = G_IFDIR | G_IRWXU | G_IRWXG;
   //on met à 2 pour . et .. et le dossier parent
-  freeInodeEntry.iNodeStat.st_nlink = 3;
+  freeInodeEntry.iNodeStat.st_nlink = 2;
   //Il contient . et ..
   freeInodeEntry.iNodeStat.st_size = 2 * sizeof(DirEntry);
   //bon bah si j'ai bien compris y a tj que 1 block de toute facon...
