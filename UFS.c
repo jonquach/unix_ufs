@@ -871,6 +871,7 @@ int bd_truncate(const char *pFilename, int NewSize)
 
   if (NewSize == 0) {
     ReleaseFreeBlock(iNodeEntryFile.Block[0]);
+    iNodeEntryFile.iNodeStat.st_blocks = 0;
   }
 
   iNodeEntryFile.iNodeStat.st_size = NewSize;
